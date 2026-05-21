@@ -151,6 +151,14 @@
     .marker-pin { transition: transform 0.15s; }
     .marker:hover .marker-pin { transform: scale(1.35); }
 
+    /* Area di tap più generosa su touch */
+    @media (pointer: coarse) {
+      .marker::before {
+        content: ''; position: absolute;
+        inset: -14px; z-index: -1;
+      }
+    }
+
     /* Tooltip al passaggio del mouse */
     #marker-tooltip {
       position: fixed; display: none; z-index: 9999;
@@ -557,6 +565,51 @@ const PERIODS = [
     }
   },
 
+  /* ── PARALLEL ANTICHITÀ: GRECIA ANTICA ── */
+  {
+    id: 'grecia', label: 'Grecia Antica', track: 'ant1',
+    start: -800, end: -146, color: '#1565C0',
+    info: {
+      sub: '800 a.C. → 146 a.C. · 654 anni',
+      desc: 'La <strong>Grecia Antica</strong> è la culla della civiltà occidentale. Le <strong>poleis</strong> (città-stato) come Atene e Sparta svilupparono democrazia, filosofia, teatro e scienza. <strong>Alessandro Magno</strong> conquistò un impero che si estendeva fino all\'India. Nel 146 a.C. la Grecia divenne provincia romana, ma la sua cultura conquistò Roma.',
+      events: [
+        { yr: '776 a.C.', tx: 'Primi Giochi Olimpici' },
+        { yr: '490 a.C.', tx: 'Battaglia di Maratona (Greci vs Persiani)' },
+        { yr: '447 a.C.', tx: 'Costruzione del Partenone ad Atene' },
+        { yr: '336 a.C.', tx: 'Alessandro Magno re di Macedonia' },
+        { yr: '323 a.C.', tx: 'Morte di Alessandro: l\'impero si divide' },
+        { yr: '146 a.C.', tx: 'La Grecia diventa provincia romana' },
+      ],
+      facts: [
+        'Socrate, Platone e Aristotele vissero tutti nel V-IV secolo a.C. ad Atene',
+        'I Romani ammiravano talmente la cultura greca che adottarono i loro dèi, cambiando solo i nomi',
+        '"Graecia capta ferum victorem cepit": la Grecia conquistata conquistò il suo feroce vincitore (Orazio)',
+      ]
+    }
+  },
+  /* ── PARALLEL ANTICHITÀ: CARTAGINE ── */
+  {
+    id: 'cartagine', label: 'Cartagine', track: 'ant2',
+    start: -814, end: -146, color: '#6A1B4D',
+    info: {
+      sub: '814 a.C. → 146 a.C. · 668 anni',
+      desc: '<strong>Cartagine</strong> fu fondata dai Fenici sulle coste dell\'odierna Tunisia. Divenne la potenza commerciale dominante del Mediterraneo occidentale, controllando rotte commerciali, miniere e colonie. La sua rivalità con Roma portò alle tre <strong>guerre puniche</strong> (264–146 a.C.), al termine delle quali fu completamente distrutta.',
+      events: [
+        { yr: '814 a.C.', tx: 'Fondazione di Cartagine (colonia fenicia)' },
+        { yr: '264 a.C.', tx: 'Prima guerra punica: Roma vs Cartagine' },
+        { yr: '218 a.C.', tx: 'Annibale attraversa le Alpi con gli elefanti' },
+        { yr: '202 a.C.', tx: 'Battaglia di Zama: Scipione sconfigge Annibale' },
+        { yr: '149 a.C.', tx: 'Terza guerra punica' },
+        { yr: '146 a.C.', tx: 'Distruzione di Cartagine' },
+      ],
+      facts: [
+        'Il senatore Catone concludeva ogni discorso con "Carthago delenda est" (Cartagine deve essere distrutta)',
+        'Annibale è considerato uno dei più grandi generali della storia, ancora studiato nelle accademie militari',
+        'Secondo la leggenda i Romani sparsero il sale sulle rovine di Cartagine per rendere la terra sterile',
+      ]
+    }
+  },
+
   /* ── PARALLEL 1: IMPERO BIZANTINO ── */
   {
     id: 'bizantino', label: 'Impero Bizantino', track: 'par1',
@@ -935,8 +988,15 @@ function render() {
   // Separator
   inner.appendChild(mk('div', 'sep'));
 
-  // Group 2 — entità parallele
-  inner.appendChild(mk('div', 'group-label', 'Entità parallele'));
+  // Group 2 — civiltà parallele all'antichità romana
+  inner.appendChild(mk('div', 'group-label', 'Civiltà parallele (Antichità)'));
+  inner.appendChild(buildTrack('ant1'));
+  inner.appendChild(buildTrack('ant2'));
+
+  inner.appendChild(mk('div', 'sep'));
+
+  // Group 3 — entità parallele (Medioevo → Contemporanea)
+  inner.appendChild(mk('div', 'group-label', 'Entità parallele (Medioevo → Contemporanea)'));
   inner.appendChild(buildTrack('par1'));
   inner.appendChild(buildTrack('par2'));
   inner.appendChild(buildTrack('par3'));
@@ -945,7 +1005,8 @@ function render() {
 
   // Linee verticali marker + linea "oggi": calcoliamo l'altezza approssimativa
   // axis(38) + label(30) + markers(74+2) + epoch(48+3) + main(46+7) + sep(29) + label(30) + par×3(53×3) + axis(38)
-  const approxH = 38 + 30 + 76 + 51 + 53 + 29 + 30 + 159 + 38; // ≈ 504px
+  // axis+label+markers+epoch+main + sep+label+ant×2 + sep+label+par×3 + axis
+  const approxH = 38 + 30 + 76 + 51 + 53 + 29 + 30 + 106 + 29 + 30 + 159 + 38; // ≈ 669px
   addMarkerVlines(inner, approxH);
 
   const line = mk('div');
@@ -1027,6 +1088,20 @@ function closePanel() {
   document.getElementById('placeholder').classList.remove('hidden');
   if (active) { document.getElementById('p-' + active)?.classList.remove('active'); active = null; }
 }
+
+/* ── Chiudi con ESC ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+});
+
+/* ── Chiudi cliccando fuori dal pannello ── */
+document.addEventListener('click', e => {
+  const panel = document.getElementById('info-panel');
+  if (!panel.classList.contains('visible')) return;
+  if (panel.contains(e.target)) return;
+  if (e.target.closest('.period, .marker, .leg-item, #infoClose')) return;
+  closePanel();
+});
 
 /* ══════════════════════════════════════════════
    DRAG-TO-SCROLL (desktop)
