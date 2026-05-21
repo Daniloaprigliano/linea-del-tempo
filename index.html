@@ -344,12 +344,72 @@
       border-radius: 4px; white-space: nowrap;
     }
 
+    /* ── FILTER BAR ── */
+    #filter-bar {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 24px 8px; flex-wrap: wrap; flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+    .fl-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #AAA; margin-right: 2px; }
+    .fl-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px 5px 9px; border-radius: 20px;
+      border: 1.5px solid #D0C8BA; background: white;
+      cursor: pointer; font-size: 11.5px; font-weight: 600; color: #555;
+      transition: all 0.15s; user-select: none;
+    }
+    .fl-btn:hover { border-color: #999; color: #222; }
+    .fl-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; transition: opacity 0.15s; }
+    .fl-btn.off { color: #BBB; border-color: #EEE; background: #FAFAFA; }
+    .fl-btn.off .fl-swatch { opacity: 0.25; }
+    .fl-btn.off::after { content: ' (nascosto)'; font-size: 10px; color: #CCC; }
+
+    /* ── EVENT DOTS ── */
+    .ev-dot {
+      position: absolute; width: 9px; height: 9px; border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.28);
+      top: 50%; transform: translate(-50%, -50%);
+      cursor: pointer; z-index: 6;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .ev-dot:hover { transform: translate(-50%, -50%) scale(1.8); box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+    .ev-dot.open  { transform: translate(-50%, -50%) scale(1.6); box-shadow: 0 0 0 2.5px white, 0 0 0 4.5px var(--dc,#999); }
+
+    /* ── EVENT POPUP ── */
+    #ev-popup {
+      position: fixed; z-index: 10000; display: none;
+      background: white; border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+      border: 1px solid var(--border);
+      max-width: 280px; min-width: 210px;
+    }
+    .ep-head { padding: 10px 12px 9px; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--border); }
+    .ep-bar  { width: 4px; border-radius: 2px; align-self: stretch; min-height: 30px; flex-shrink: 0; }
+    .ep-year { font-size: 9px; font-weight: 800; margin-bottom: 2px; }
+    .ep-title{ font-size: 12.5px; font-weight: 700; color: #111; line-height: 1.3; }
+    .ep-close{ margin-left: auto; background: none; border: none; color: #CCC; cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+    .ep-close:hover { color: #666; }
+    .ep-body { padding: 9px 12px; font-size: 11.5px; color: #555; line-height: 1.6; }
+
+    /* ── FILTER VISIBILITY ── */
+    .hide-dots .ev-dot                       { display: none; }
+    .hide-pins .marker-track,
+    .hide-pins .marker-vline                 { display: none; }
+    .tl-group                                { overflow: visible; }
+    .hide-ant .tl-group[data-g="ant"]        { display: none; }
+    .hide-med .tl-group[data-g="med"]        { display: none; }
+
     @media (max-width: 600px) {
       header { padding: 14px 16px; }
       .tl-outer { padding: 16px 16px 4px; }
       #info-panel { margin: 4px 16px 20px; }
       #legend { padding: 0 16px 20px; }
       .period-lbl { font-size: 10px; }
+      #filter-bar { padding: 8px 16px; gap: 6px; }
+      .fl-btn { font-size: 10.5px; padding: 4px 10px 4px 8px; }
     }
   </style>
 </head>
@@ -362,6 +422,31 @@
     <p>Clicca su un periodo per scoprire di più · Scorri per navigare tutta la storia</p>
   </div>
 </header>
+
+<div id="filter-bar">
+  <span class="fl-label">Mostra</span>
+  <button class="fl-btn" data-layer="dots">
+    <span class="fl-swatch" style="background:#888;border-radius:50%"></span>Puntini eventi
+  </button>
+  <button class="fl-btn" data-layer="pins">
+    <span class="fl-swatch" style="background:#444"></span>Segnaposti
+  </button>
+  <button class="fl-btn" data-layer="ant">
+    <span class="fl-swatch" style="background:linear-gradient(to right,#1565C0 50%,#6A1B4D 50%)"></span>Grecia &amp; Cartagine
+  </button>
+  <button class="fl-btn" data-layer="med">
+    <span class="fl-swatch" style="background:linear-gradient(135deg,#B8860B 33%,#6C3483 33%,#6C3483 66%,#922B21 66%)"></span>Entità medievali
+  </button>
+</div>
+
+<div id="ev-popup">
+  <div class="ep-head">
+    <div class="ep-bar" id="epBar"></div>
+    <div><div class="ep-year" id="epYear"></div><div class="ep-title" id="epTitle"></div></div>
+    <button class="ep-close" onclick="closeEvPopup()">✕</button>
+  </div>
+  <div class="ep-body" id="epBody"></div>
+</div>
 
 <div id="placeholder">
   <span>👆</span>
@@ -802,6 +887,85 @@ const MARKERS = [
     ] },
 ];
 
+/* ══════════════════════════════════════════════
+   EVENTS — puntini sui box dei periodi
+══════════════════════════════════════════════ */
+const EVENTS = [
+  // ── Monarchia ──
+  { y:-716, p:'monarchia', t:'Morte di Romolo', d:'Il primo re di Roma muore o, secondo la leggenda, viene rapito dagli dèi durante una tempesta. I Romani lo venerarono come il dio Quirino.' },
+  { y:-616, p:'monarchia', t:'Tarquinio Prisco re', d:'Primo re di origine etrusca: trasformò Roma con grandi opere pubbliche — il Circo Massimo e le prime fognature (Cloaca Massima).' },
+
+  // ── Repubblica ──
+  { y:-390, p:'repubblica', t:'I Galli saccheggiano Roma', d:'I Galli Senoni varcano le Alpi, sbaragliano l\'esercito romano all\'Allia e mettono a fuoco Roma. Secondo la leggenda, le oche del Campidoglio salvarono la città svegliando le sentinelle.' },
+  { y:-264, p:'repubblica', t:'Prima guerra punica', d:'Roma e Cartagine si scontrano per la prima volta per il controllo della Sicilia. Durerà 23 anni e costringerà Roma a costruire una flotta dal nulla.' },
+  { y:-218, p:'repubblica', t:'Annibale attraversa le Alpi', d:'Il generale cartaginese Annibale Barca attraversa le Alpi con 37 elefanti da guerra in pieno inverno. Sbaraglierà tre eserciti romani, ma non riuscirà mai a prendere Roma.' },
+  { y:-44,  p:'repubblica', t:'Assassinio di Giulio Cesare', d:'Giulio Cesare viene pugnalato 23 volte alle Idi di Marzo da un gruppo di senatori guidati da Bruto e Cassio. L\'atto, pensato per salvare la Repubblica, ne accelera la fine.' },
+
+  // ── Impero Romano ──
+  { y:79,  p:'impero-rom', t:'Eruzione del Vesuvio — Pompei', d:'Il Vesuvio erutta seppellendo le città di Pompei ed Ercolano sotto una coltre di cenere e lapilli. Le città rimangono intatte per quasi 1700 anni, restituendo uno spaccato perfetto della vita romana.' },
+  { y:117, p:'impero-rom', t:'Massima espansione (Traiano)', d:'Con Traiano l\'Impero raggiunge la sua massima estensione: dal Vallo di Adriano in Scozia alla Mesopotamia, dal Marocco al Mar Caspio. Mai più grande.' },
+  { y:212, p:'impero-rom', t:'Editto di Caracalla', d:'L\'imperatore Caracalla concede la cittadinanza romana a tutti gli uomini liberi dell\'Impero, indipendentemente dall\'origine. Una svolta storica nell\'idea stessa di "cittadinanza".' },
+  { y:313, p:'impero-rom', t:'Editto di Milano', d:'Costantino e Licinio proclamano la libertà di culto per i cristiani. Fine delle persecuzioni: il Cristianesimo diventerà presto la religione ufficiale dell\'Impero.' },
+  { y:380, p:'impero-rom', t:'Cristianesimo religione di stato', d:'L\'imperatore Teodosio I con l\'Editto di Tessalonica fa del Cristianesimo niceno la religione ufficiale dell\'Impero, vietando i culti pagani.' },
+
+  // ── Alto Medioevo ──
+  { y:529, p:'alto-med', t:'Regola di San Benedetto', d:'San Benedetto da Norcia fonda Montecassino e scrive la sua Regola. I monasteri benedettini diventeranno i centri culturali d\'Europa, conservando i testi antichi.' },
+  { y:622, p:'alto-med', t:'Egira — nasce l\'Islam', d:'Maometto fugge da La Mecca a Medina: è l\'Egira, anno zero del calendario islamico. Nascerà una civiltà che in 100 anni si estenderà dalla Spagna all\'India.' },
+  { y:732, p:'alto-med', t:'Battaglia di Poitiers', d:'Carlo Martello, nonno di Carlo Magno, ferma l\'avanzata islamica in Europa. La vittoria segnò il limite settentrionale della conquista araba del continente.' },
+  { y:962, p:'alto-med', t:'Ottone I imperatore', d:'Il re dei Sassoni Ottone I viene incoronato imperatore a Roma: il Sacro Romano Impero trova un nuovo centro di gravità nel mondo germanico.' },
+
+  // ── Basso Medioevo ──
+  { y:1054, p:'basso-med', t:'Scisma d\'Oriente', d:'La Chiesa cristiana si divide definitivamente in Cattolica (Roma) e Ortodossa (Costantinopoli). Una frattura mai più sanata, con conseguenze geopolitiche che durano ancora oggi.' },
+  { y:1088, p:'basso-med', t:'Università di Bologna', d:'Nasce la prima università del mondo occidentale. Studenti da tutta Europa si recano a Bologna per studiare il diritto romano. Il modello si diffonderà rapidamente.' },
+  { y:1096, p:'basso-med', t:'Prima Crociata', d:'Il papa Urbano II lancia la Prima Crociata: migliaia di cavalieri europei partono per liberare Gerusalemme. Nel 1099 la conquistano, fondando il Regno di Gerusalemme.' },
+  { y:1215, p:'basso-med', t:'Magna Carta', d:'I baroni inglesi costringono il re Giovanni Senzaterra a firmare la Magna Carta, che limita il potere reale. È uno dei primi documenti a sancire diritti contro l\'arbitrio del sovrano.' },
+  { y:1321, p:'basso-med', t:'Morte di Dante', d:'Dante Alighieri muore a Ravenna. La Divina Commedia, scritta in volgare fiorentino, pone le basi della lingua italiana e rimane uno dei capolavori assoluti della letteratura mondiale.' },
+  { y:1348, p:'basso-med', t:'Peste Nera', d:'La Peste Nera arriva in Europa dalla Crimea via Sicilia. In tre anni uccide tra il 30 e il 50% della popolazione europea — circa 25 milioni di persone. Trasforma per sempre la struttura sociale.' },
+  { y:1439, p:'basso-med', t:'Stampa di Gutenberg', d:'Johannes Gutenberg inventa i caratteri mobili in metallo e la stampa a torchio. La Bibbia di Gutenberg è il primo libro stampato. La diffusione delle idee non sarà mai più la stessa.' },
+
+  // ── Età Moderna ──
+  { y:1517, p:'moderna', t:'Riforma Protestante — Lutero', d:'Martin Lutero affigge le sue 95 tesi contro le indulgenze a Wittenberg. Inizia la Riforma: la Chiesa cattolica si spacca e l\'Europa entra in decenni di guerre di religione.' },
+  { y:1543, p:'moderna', t:'Copernico — sistema eliocentrico', d:'Niccolò Copernico pubblica "De revolutionibus": la Terra gira intorno al Sole, non viceversa. Rivoluziona la visione del mondo e prepara il terreno a Galileo e Newton.' },
+  { y:1588, p:'moderna', t:'Invincibile Armada sconfitta', d:'La flotta spagnola inviata da Filippo II per invadere l\'Inghilterra viene distrutta da tempeste e dalla flotta inglese. Segna l\'inizio del declino della potenza spagnola e l\'ascesa britannica.' },
+  { y:1687, p:'moderna', t:'Newton — Principia Mathematica', d:'Isaac Newton pubblica i Principia: spiega la gravitazione universale e le leggi del moto. Nasce la fisica moderna e la concezione meccanicistica dell\'universo.' },
+  { y:1789, p:'moderna', t:'Rivoluzione Francese', d:'Il 14 luglio il popolo parigino prende la Bastiglia. Cade l\'Ancien Régime: la Rivoluzione proclama libertà, uguaglianza, fraternità e cambia per sempre la politica europea.' },
+
+  // ── Età Contemporanea ──
+  { y:1848, p:'contemp', t:'Primavera dei Popoli', d:'Rivoluzioni simultanee in Francia, Austria, Italia, Germania e Ungheria. I popoli chiedono costituzioni e indipendenza nazionale. Quasi tutte falliscono, ma le idee sopravvivono.' },
+  { y:1861, p:'contemp', t:'Unità d\'Italia', d:'Il 17 marzo 1861 nasce il Regno d\'Italia con Vittorio Emanuele II re. Garibaldi e i Mille avevano conquistato il Sud; Cavour aveva gestito la diplomazia. Roma capitate nel 1871.' },
+  { y:1905, p:'contemp', t:'Einstein — Relatività ristretta', d:'Albert Einstein pubblica la teoria della relatività ristretta ed E=mc². Rivoluziona la fisica, la concezione di spazio e tempo, e apre la strada all\'energia nucleare.' },
+  { y:1914, p:'contemp', t:'Prima Guerra Mondiale', d:'L\'assassinio dell\'arciduca Francesco Ferdinando a Sarajevo scatena la guerra. Per la prima volta la tecnologia industriale (mitragliatrici, gas, aerei) è al servizio della morte di massa: 20 milioni di vittime.' },
+  { y:1945, p:'contemp', t:'Fine della Seconda Guerra Mondiale', d:'La resa della Germania (maggio) e del Giappone (settembre) chiude il conflitto più distruttivo della storia: 70-85 milioni di morti. Nascono l\'ONU e un nuovo ordine mondiale bipolare.' },
+  { y:1969, p:'contemp', t:'Apollo 11 — uomo sulla Luna', d:'Il 20 luglio 1969 Neil Armstrong è il primo uomo a camminare sulla Luna. "Un piccolo passo per l\'uomo, un gigantesco balzo per l\'umanità."' },
+  { y:1989, p:'contemp', t:'Caduta del Muro di Berlino', d:'Il 9 novembre 1989 il Muro di Berlino cade tra l\'entusiasmo popolare. Finisce la Guerra Fredda: l\'Unione Sovietica si dissolverà due anni dopo. L\'Europa si riunifica.' },
+
+  // ── Grecia Antica ──
+  { y:-490, p:'grecia', t:'Battaglia di Maratona', d:'10.000 Ateniesi sconfiggono 25.000 Persiani a Maratona. Un soldato corre fino ad Atene per annunciare la vittoria — e muore: nasce la "maratona". La Grecia ferma la prima invasione persiana.' },
+  { y:-480, p:'grecia', t:'Battaglia delle Termopili', d:'300 Spartani guidati da Leonida fermano per tre giorni l\'esercito persiano alle Termopili. Muoiono tutti, ma il sacrificio permette alla Grecia di organizzare la difesa.' },
+  { y:-447, p:'grecia', t:'Partenone di Atene', d:'Inizia la costruzione del Partenone sull\'Acropoli di Atene, capolavoro dell\'architettura greca classica. Sotto Pericle, Atene vive il suo secolo d\'oro: Socrate, Sofocle, Erodoto.' },
+  { y:-336, p:'grecia', t:'Alessandro Magno re', d:'Alessandro, 20 anni, diventa re di Macedonia. In 13 anni conquisterà un impero che si estende dall\'Egitto all\'India, diffondendo la cultura greca (ellenismo) in tutto il Mediterraneo orientale.' },
+
+  // ── Cartagine ──
+  { y:-480, p:'cartagine', t:'Battaglia di Imera', d:'I Cartaginesi tentano di conquistare la Sicilia ma vengono sconfitti dalla coalizione greca di Siracusa e Agrigento a Imera, nello stesso giorno della battaglia di Salamina.' },
+  { y:-264, p:'cartagine', t:'Prima guerra punica inizia', d:'Roma e Cartagine si scontrano per la Sicilia. Roma non ha una flotta ma in pochi anni ne costruisce una copiando le navi cartaginesi. Inizia il declino di Cartagine.' },
+  { y:-218, p:'cartagine', t:'Annibale — campagna in Italia', d:'Annibale con 50.000 uomini e 37 elefanti varca le Alpi e dilaga in Italia. Sconfigge tre eserciti romani. Ma senza prendere Roma, la vittoria resta incompiuta.' },
+
+  // ── Impero Bizantino ──
+  { y:537,  p:'bizantino', t:'Santa Sofia completata', d:'Giustiniano inaugura la basilica di Santa Sofia a Costantinopoli. Con la sua cupola di 31 metri è la più grande chiesa del mondo per quasi 1000 anni. Oggi è moschea-museo a Istanbul.' },
+  { y:726,  p:'bizantino', t:'Iconoclastia', d:'L\'imperatore Leone III ordina la distruzione delle icone religiose. La controversia iconoclasta dividerà l\'Impero per oltre un secolo e contribuirà allo Scisma d\'Oriente del 1054.' },
+  { y:1204, p:'bizantino', t:'I Crociati saccheggiano Costantinopoli', d:'La Quarta Crociata devia verso Costantinopoli: i cristiani occidentali saccheggiano la capitale cristiana d\'Oriente. Un atto che segna l\'inizio del declino definitivo di Bisanzio.' },
+
+  // ── Sacro Romano Impero ──
+  { y:1076, p:'sacro-rom', t:'Lotta per le investiture', d:'Il papa Gregorio VII scomunica l\'imperatore Enrico IV. Enrico si umilia a Canossa per ottenere l\'assoluzione. Un episodio che simbolizza il conflitto secolare tra papato e impero.' },
+  { y:1356, p:'sacro-rom', t:'Bolla d\'Oro', d:'Carlo IV stabilisce le regole per eleggere l\'imperatore: sette grandi elettori (principi laici ed ecclesiastici). La Bolla d\'Oro mostra quanto l\'Impero fosse frammentato e debole.' },
+  { y:1618, p:'sacro-rom', t:'Guerra dei Trent\'anni', d:'La guerra più devastante del XVII secolo: 8 milioni di morti, la Germania perde un terzo della popolazione. Si combatte per ragioni religiose (cattolici vs protestanti) e politiche.' },
+
+  // ── Impero Ottomano ──
+  { y:1453, p:'ottomano', t:'Conquista di Costantinopoli', d:'Maometto II usa cannoni giganteschi per abbattere le mura di Costantinopoli. La città viene rinominata Istanbul e diventa la nuova capitale dell\'Impero.' },
+  { y:1529, p:'ottomano', t:'Primo assedio di Vienna', d:'Solimano il Magnifico assedia Vienna ma deve ritirarsi per l\'arrivo dell\'autunno. Il fallimento segna il limite massimo dell\'espansione ottomana in Europa.' },
+  { y:1571, p:'ottomano', t:'Battaglia di Lepanto', d:'La flotta cristiana (Venezia, Spagna, Papato) sconfigge la flotta ottomana nel Golfo di Lepanto. Cervantes, futuro autore del Don Chisciotte, combatté e perse un braccio.' },
+];
+
 const EPOCHS = [
   { label: 'Storia Romana',     start: -753, end:  476, color: '#B03020' },
   { label: 'Medioevo',          start:  476, end: 1492, color: '#1A5F8A' },
@@ -869,6 +1033,70 @@ function buildAxis() {
   });
 
   return ax;
+}
+
+/* ══════════════════════════════════════════════
+   EVENT DOT POPUP
+══════════════════════════════════════════════ */
+let openDot = null;
+
+function showEvPopup(dotEl, ev, periodColor) {
+  if (openDot) openDot.classList.remove('open');
+  dotEl.classList.add('open');
+  openDot = dotEl;
+  dotEl.style.setProperty('--dc', periodColor);
+
+  document.getElementById('epBar').style.background  = periodColor;
+  document.getElementById('epYear').style.color      = periodColor;
+  document.getElementById('epYear').textContent      = fmtYear(ev.y);
+  document.getElementById('epTitle').textContent     = ev.t;
+  document.getElementById('epBody').textContent      = ev.d;
+
+  const popup = document.getElementById('ev-popup');
+  popup.style.display = 'block';
+  positionEvPopup(dotEl);
+}
+
+function positionEvPopup(dotEl) {
+  const popup = document.getElementById('ev-popup');
+  const r = dotEl.getBoundingClientRect();
+  const pw = 280, ph = 130;
+  let left = r.left + r.width / 2 - pw / 2;
+  let top  = r.top - ph - 10;
+  if (left < 8) left = 8;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (top < 8) top = r.bottom + 10;
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+}
+
+function closeEvPopup() {
+  document.getElementById('ev-popup').style.display = 'none';
+  if (openDot) { openDot.classList.remove('open'); openDot = null; }
+}
+
+/* ══════════════════════════════════════════════
+   FILTERS
+══════════════════════════════════════════════ */
+function setupFilters() {
+  const inner = document.getElementById('tlInner');
+  document.querySelectorAll('.fl-btn').forEach(btn => {
+    const layer = btn.dataset.layer;
+    // tutti attivi all'inizio
+    btn.classList.remove('off');
+    btn.addEventListener('click', () => {
+      const isOff = btn.classList.toggle('off');
+      if (isOff) inner.classList.add('hide-' + layer);
+      else        inner.classList.remove('hide-' + layer);
+      if (layer === 'dots' && isOff) closeEvPopup();
+    });
+  });
+  // chiudi popup dot con ESC o click fuori
+  document.addEventListener('click', e => {
+    if (!openDot) return;
+    if (e.target.closest('#ev-popup') || e.target.classList.contains('ev-dot')) return;
+    closeEvPopup();
+  });
 }
 
 /* ── Tooltip globale (segnaposti) ── */
@@ -985,6 +1213,20 @@ function buildTrack(trackId) {
     el.dataset.id = p.id;
     el.appendChild(mk('span', 'period-lbl', p.label));
     el.addEventListener('click', () => selectPeriod(p.id));
+
+    // Aggiunge i puntini degli eventi
+    EVENTS.filter(ev => ev.p === p.id).forEach(ev => {
+      const dot = mk('div', 'ev-dot');
+      const relX = (ev.y - p.start) / (p.end - p.start) * 100;
+      dot.style.left = relX + '%';
+      dot.title = fmtYear(ev.y) + ' — ' + ev.t;
+      dot.addEventListener('click', e => {
+        e.stopPropagation(); // non aprire anche il pannello del periodo
+        showEvPopup(dot, ev, p.color);
+      });
+      el.appendChild(dot);
+    });
+
     track.appendChild(el);
   });
   return track;
@@ -1013,21 +1255,24 @@ function render() {
   inner.appendChild(buildEpochTrack());
   inner.appendChild(buildTrack('main'));
 
-  // Separator
+  // Separator + Group 2 — civiltà parallele antichità (filtrabile)
   inner.appendChild(mk('div', 'sep'));
+  const gAnt = mk('div', 'tl-group');
+  gAnt.dataset.g = 'ant';
+  gAnt.appendChild(mk('div', 'group-label', 'Civiltà parallele (Antichità)'));
+  gAnt.appendChild(buildTrack('ant1'));
+  gAnt.appendChild(buildTrack('ant2'));
+  inner.appendChild(gAnt);
 
-  // Group 2 — civiltà parallele all'antichità romana
-  inner.appendChild(mk('div', 'group-label', 'Civiltà parallele (Antichità)'));
-  inner.appendChild(buildTrack('ant1'));
-  inner.appendChild(buildTrack('ant2'));
-
+  // Separator + Group 3 — entità medievali (filtrabile)
   inner.appendChild(mk('div', 'sep'));
-
-  // Group 3 — entità parallele (Medioevo → Contemporanea)
-  inner.appendChild(mk('div', 'group-label', 'Entità parallele (Medioevo → Contemporanea)'));
-  inner.appendChild(buildTrack('par1'));
-  inner.appendChild(buildTrack('par2'));
-  inner.appendChild(buildTrack('par3'));
+  const gMed = mk('div', 'tl-group');
+  gMed.dataset.g = 'med';
+  gMed.appendChild(mk('div', 'group-label', 'Entità parallele (Medioevo → Contemporanea)'));
+  gMed.appendChild(buildTrack('par1'));
+  gMed.appendChild(buildTrack('par2'));
+  gMed.appendChild(buildTrack('par3'));
+  inner.appendChild(gMed);
 
   inner.appendChild(buildAxis());
 
@@ -1152,6 +1397,7 @@ function setupDrag() {
 ══════════════════════════════════════════════ */
 render();
 setupDrag();
+setupFilters();
 
 // Scroll to show ancient Rome area on load
 window.addEventListener('load', () => {
