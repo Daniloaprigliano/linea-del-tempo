@@ -1554,23 +1554,22 @@ function renderMobile() {
       dates.textContent = fmtYear(p.start) + ' – ' + fmtYear(p.end);
       bar.appendChild(dates);
     }
-    // Puntini evento sulla barra verticale
+    addTap(bar, () => selectPeriod(p.id));
+    wrap.appendChild(bar);
+  });
+
+  /* ── PUNTINI EVENTO (fratelli delle barre, non figli — no bubbling) ── */
+  const dotCX = AXIS_W + 2 + (MAIN_W - 2) / 2; // centro orizzontale della colonna main
+  PERIODS.filter(p => p.track === 'main').forEach(p => {
     EVENTS.filter(ev => ev.p === p.id).forEach(ev => {
-      const topInBar = (ev.y - p.start) * VPY;
-      if (topInBar < 4 || topInBar > barH - 4) return; // evita il clipping ai bordi
       const dot = mk('div', 'ev-dot');
-      dot.style.top  = topInBar + 'px';
-      dot.style.left = '50%';
-      dot.style.transform = 'translate(-50%, -50%)';
+      dot.style.cssText = `left:${dotCX}px; top:${yv(ev.y)}px; transform:translate(-50%,-50%); z-index:8;`;
       addTap(dot, () => {
         if (openDot === dot) { closeEvPopup(); return; }
         showEvPopup(dot, ev, p.color);
-      }, true); // stopProp: non aprire anche il pannello del periodo
-      bar.appendChild(dot);
+      });
+      wrap.appendChild(dot);
     });
-
-    addTap(bar, () => selectPeriod(p.id));
-    wrap.appendChild(bar);
   });
 
   /* ── PARALLEL TRACKS ── */
