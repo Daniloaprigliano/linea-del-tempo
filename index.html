@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linea del Tempo Storica — Classe Seconda</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --monarchia:   #8B1A1A;
+      --repubblica:  #C0392B;
+      --impero-rom:  #D35400;
+      --alto-med:    #2471A3;
+      --basso-med:   #154360;
+      --moderna:     #1A7A3C;
+      --contemp:     #0E6655;
+      --bizantino:   #B8860B;
+      --sacro-rom:   #6C3483;
+      --ottomano:    #922B21;
+      --bg:          #F4F1EB;
+      --card:        #FFFFFF;
+      --border:      #DDD6C8;
+      --text:        #1A1A1A;
+      --muted:       #777;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #16213E;
+      color: #fff;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-shrink: 0;
+    }
+    .header-icon {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+    header p  { font-size: 0.78rem; opacity: 0.6; margin-top: 3px; }
+
+    /* ── PLACEHOLDER ── */
+    #placeholder {
+      margin: 24px 24px 0;
+      background: var(--card);
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 10px;
+    }
+    #placeholder.hidden { display: none; }
+
+    /* ── TIMELINE SCROLL ── */
+    .tl-outer {
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px 28px 4px;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+    .tl-outer:active { cursor: grabbing; }
+
+    .tl-inner {
+      position: relative;
+      user-select: none;
+    }
+
+    /* ── YEAR AXIS ── */
+    .axis {
+      position: relative;
+      height: 38px;
+    }
+    .y-mark {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .y-mark .tick       { width: 1px; height: 6px;  background: #CCC; }
+    .y-mark .tick.major { height: 12px; background: #999; }
+    .y-mark .tick.key   { height: 10px; background: #666; }
+    .y-mark .lbl        { font-size: 9.5px; color: #AAA; white-space: nowrap; }
+    .y-mark .lbl.major  { font-size: 11px; color: #555; font-weight: 700; }
+    .y-mark .lbl.key    { font-size: 10px; color: #777; font-weight: 600; }
+
+    /* Special zero marker */
+    .y-mark.zero .tick  { background: #B8860B; height: 14px; width: 2px; }
+    .y-mark.zero .lbl   { color: #B8860B; font-weight: 700; font-size: 10px; }
+
+    /* ── TRACK GROUPS ── */
+    .group-label {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.09em; color: #AAA; margin: 12px 0 6px;
+    }
+
+    .track {
+      position: relative; height: 46px; margin-bottom: 7px;
+    }
+
+    /* Epoch background bands (behind main track) */
+    .epoch-band {
+      position: absolute; top: 0; height: 100%;
+      border-radius: 6px; pointer-events: none; z-index: 0;
+      opacity: 0.13;
+    }
+
+    /* Period segments */
+    .period {
+      position: absolute; top: 0; height: 100%;
+      border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; padding: 0 10px;
+      overflow: hidden; z-index: 1;
+      transition: filter 0.12s, transform 0.12s, outline 0.12s;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+    }
+    .period:hover { filter: brightness(1.12); transform: scaleY(1.06); z-index: 5; }
+    .period.active {
+      outline: 3px solid rgba(255,255,255,0.9);
+      filter: brightness(1.18);
+      z-index: 10;
+    }
+    .period-lbl {
+      font-size: 11.5px; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.35); pointer-events: none;
+    }
+
+    /* Track separator */
+    .sep { height: 1px; background: var(--border); margin: 14px 0; }
+
+    /* ── INFO PANEL ── */
+    #info-panel {
+      margin: 4px 24px 24px;
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 6px 30px rgba(0,0,0,0.09);
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    #info-panel.visible {
+      opacity: 1; transform: translateY(0); pointer-events: auto;
+    }
+
+    .info-head {
+      padding: 16px 18px;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .info-bar { width: 5px; border-radius: 3px; align-self: stretch; min-height: 40px; flex-shrink: 0; }
+    .info-title    { font-size: 1.05rem; font-weight: 800; }
+    .info-subtitle { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .info-close {
+      margin-left: auto; background: none; border: none;
+      font-size: 1.1rem; cursor: pointer; color: #BBB; padding: 2px 4px;
+      line-height: 1; flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .info-close:hover { color: #666; }
+
+    .info-body {
+      padding: 0 18px 18px;
+      border-top: 1px solid var(--border);
+    }
+    .info-desc {
+      font-size: 0.875rem; line-height: 1.65; color: #333; margin-top: 14px;
+    }
+    .info-desc strong { color: #111; }
+
+    .sec-title {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.09em; color: #BBB; margin: 14px 0 8px;
+    }
+
+    .events-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .ev-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #F4F1EB; border-radius: 20px; padding: 4px 12px;
+      font-size: 0.78rem;
+    }
+    .ev-chip .yr { font-weight: 700; color: #333; }
+    .ev-chip .tx { color: #666; }
+
+    .facts-list { display: flex; flex-direction: column; gap: 7px; }
+    .fact {
+      font-size: 0.83rem; color: #555; display: flex; gap: 8px; align-items: flex-start;
+    }
+    .fact::before { content: '→'; flex-shrink: 0; color: #CCC; margin-top: 1px; }
+
+    /* ── LEGEND ── */
+    #legend {
+      display: flex; flex-wrap: wrap; gap: 7px 14px;
+      padding: 0 28px 28px;
+    }
+    .leg-item {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 0.75rem; color: #666; cursor: pointer;
+      transition: color 0.12s;
+    }
+    .leg-item:hover { color: #111; }
+    .leg-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── SCROLL HINT ── */
+    .scroll-hint {
+      text-align: center; font-size: 0.72rem; color: #BBB;
+      padding: 0 28px 6px; letter-spacing: 0.04em;
+    }
+
+    /* ── OGGI BADGE ── */
+    .oggi-marker {
+      position: absolute; top: 0; z-index: 20; pointer-events: none;
+    }
+    .oggi-line { width: 2px; background: #E74C3C; position: absolute; top: 0; }
+    .oggi-label {
+      position: absolute; top: -20px; transform: translateX(-50%);
+      background: #E74C3C; color: white;
+      font-size: 9px; font-weight: 700; padding: 2px 6px;
+      border-radius: 4px; white-space: nowrap;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 14px 16px; }
+      .tl-outer { padding: 16px 16px 4px; }
+      #info-panel { margin: 4px 16px 20px; }
+      #legend { padding: 0 16px 20px; }
+      .period-lbl { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">📜</div>
+  <div>
+    <h1>Linea del Tempo Storica</h1>
+    <p>Clicca su un periodo per scoprire di più · Scorri per navigare tutta la storia</p>
+  </div>
+</header>
+
+<div id="placeholder">
+  <span>👆</span>
+  <span>Seleziona un periodo sulla linea del tempo per leggerne la scheda</span>
+</div>
+
+<div class="scroll-hint">← scorri orizzontalmente →</div>
+
+<div class="tl-outer" id="tlOuter">
+  <div class="tl-inner" id="tlInner">
+    <!-- generated by JS -->
+  </div>
+</div>
+
+<div id="info-panel">
+  <div class="info-head">
+    <div class="info-bar" id="infoBar"></div>
+    <div>
+      <div class="info-title" id="infoTitle"></div>
+      <div class="info-subtitle" id="infoSub"></div>
+    </div>
+    <button class="info-close" onclick="closePanel()" aria-label="Chiudi">✕</button>
+  </div>
+  <div class="info-body" id="infoBody"></div>
+</div>
+
+<div id="legend"></div>
+
+<script>
+/* ══════════════════════════════════════════════
+   CONFIGURATION
+══════════════════════════════════════════════ */
+const CFG = {
+  start:      -800,
+  end:        2030,
+  pxPerYear:  1.62,
+  trackH:     46,
+};
+CFG.totalW = (CFG.end - CFG.start) * CFG.pxPerYear;
+
+const x  = y => (y - CFG.start) * CFG.pxPerYear;
+const w  = (a, b) => (b - a) * CFG.pxPerYear;
+
+function fmtYear(y) {
+  if (y < 0) return Math.abs(y) + ' a.C.';
+  if (y === 0) return 'Anno 0';
+  return String(y);
+}
+
+/* ══════════════════════════════════════════════
+   DATA — PERIODI
+══════════════════════════════════════════════ */
+const PERIODS = [
+
+  /* ── MAIN TRACK ── */
+  {
+    id: 'monarchia', label: 'Monarchia', track: 'main',
+    start: -753, end: -509, color: '#8B1A1A',
+    info: {
+      sub: '753 a.C. → 509 a.C. · 244 anni',
+      desc: 'Secondo la tradizione, Roma fu fondata da <strong>Romolo</strong> nel 753 a.C. La città era governata da sette re. L\'ultimo, <strong>Tarquinio il Superbo</strong>, fu cacciato dal popolo nel 509 a.C. per la sua crudeltà e arroganza.',
+      events: [
+        { yr: '753 a.C.', tx: 'Fondazione di Roma (secondo la tradizione)' },
+        { yr: '716 a.C.', tx: 'Morte di Romolo, primo re' },
+        { yr: '509 a.C.', tx: 'Cacciata di Tarquinio il Superbo' },
+      ],
+      facts: [
+        'Sette re si succedettero in 244 anni',
+        'La fondazione è probabilmente una leggenda — i dati archeologici indicano un insediamento progressivo',
+        'I re avevano potere assoluto: comandavano l\'esercito, guidavano le cerimonie religiose e amministravano la giustizia',
+      ]
+    }
+  },
+  {
+    id: 'repubblica', label: 'Repubblica', track: 'main',
+    start: -509, end: -27, color: '#C0392B',
+    info: {
+      sub: '509 a.C. → 27 a.C. · 482 anni',
+      desc: 'I Romani istituirono una <strong>repubblica</strong> governata da due <strong>consoli</strong> eletti ogni anno. Questo sistema evitava che una persona sola accumulasse troppo potere. In questo periodo Roma conquistò tutta l\'Italia e poi il Mediterraneo, sconfiggendo <strong>Cartagine</strong> nelle guerre puniche.',
+      events: [
+        { yr: '509 a.C.', tx: 'Nascita della Repubblica' },
+        { yr: '264–146 a.C.', tx: 'Guerre puniche contro Cartagine' },
+        { yr: '146 a.C.', tx: 'Distruzione di Cartagine' },
+        { yr: '44 a.C.', tx: 'Assassinio di Giulio Cesare' },
+        { yr: '27 a.C.', tx: 'Fine della Repubblica, Augusto imperatore' },
+      ],
+      facts: [
+        'I consoli erano due per controllare il potere a vicenda',
+        'Il Senato era composto da patrizi che detenevano il vero potere politico',
+        'La Repubblica è l\'ispirazione per molte costituzioni moderne, inclusa quella italiana',
+      ]
+    }
+  },
+  {
+    id: 'impero-rom', label: 'Impero Romano', track: 'main',
+    start: -27, end: 476, color: '#D35400',
+    info: {
+      sub: '27 a.C. → 476 d.C. · 503 anni',
+      desc: '<strong>Augusto</strong> divenne il primo imperatore nel 27 a.C. L\'Impero Romano raggiunse la sua massima estensione con <strong>Traiano</strong> nel 117 d.C. Nel 313 d.C. <strong>Costantino</strong> concesse la libertà di culto ai cristiani. Nel 395 l\'Impero fu diviso in Occidente e Oriente: l\'Occidente cadde nel 476, l\'Oriente (Bisanzio) sopravvisse per altri mille anni.',
+      events: [
+        { yr: '27 a.C.', tx: 'Augusto, primo imperatore' },
+        { yr: 'Anno 0', tx: 'Nascita di Gesù Cristo' },
+        { yr: '117', tx: 'Massima espansione dell\'Impero (Traiano)' },
+        { yr: '313', tx: 'Editto di Milano: libertà ai cristiani (Costantino)' },
+        { yr: '395', tx: 'Divisione in Oriente e Occidente' },
+        { yr: '476', tx: 'Caduta dell\'Impero d\'Occidente' },
+      ],
+      facts: [
+        'L\'Impero era così vasto che ci volevano mesi per attraversarlo',
+        'Il latino è l\'antenato dell\'italiano, del francese, dello spagnolo e del portoghese',
+        'Le strade, gli acquedotti e i ponti romani sono ancora in uso in molte parti d\'Europa',
+      ]
+    }
+  },
+  {
+    id: 'alto-med', label: 'Alto Medioevo', track: 'main',
+    start: 476, end: 1000, color: '#2471A3',
+    info: {
+      sub: '476 → 1000 · 524 anni',
+      desc: 'Dopo la caduta di Roma, i popoli germanici (Visigoti, Ostrogoti, Longobardi, Franchi) si insediarono in Europa. <strong>Carlo Magno</strong> unificò gran parte dell\'Europa occidentale e fu incoronato imperatore nell\'800. L\'<strong>Islam</strong>, nato in Arabia nel 622 con Maometto, si diffuse rapidamente nel Mediterraneo.',
+      events: [
+        { yr: '476', tx: 'Caduta dell\'Impero Romano d\'Occidente' },
+        { yr: '568', tx: 'I Longobardi invadono l\'Italia' },
+        { yr: '622', tx: 'Egira: nascita dell\'Islam' },
+        { yr: '711', tx: 'I Mori conquistano la Spagna' },
+        { yr: '800', tx: 'Incoronazione di Carlo Magno a Roma' },
+        { yr: '1000', tx: 'I Vichinghi raggiungono l\'America (Leif Eriksson)' },
+      ],
+      facts: [
+        'Carlo Magno non sapeva scrivere ma amava la cultura e istituì le prime scuole',
+        'I monasteri conservarono i testi antichi, permettendo la sopravvivenza della cultura classica',
+        'Il feudalesimo organizzò la società in signori, cavalieri e servi della gleba',
+      ]
+    }
+  },
+  {
+    id: 'basso-med', label: 'Basso Medioevo', track: 'main',
+    start: 1000, end: 1453, color: '#154360',
+    info: {
+      sub: '1000 → 1453 · 453 anni',
+      desc: 'Un\'epoca di grandi trasformazioni: le <strong>Crociate</strong> portarono l\'Europa in contatto con il mondo islamico. In Italia nacquero i <strong>Comuni</strong>, governi cittadini autonomi. La <strong>Peste Nera</strong> del 1348 uccise quasi un terzo degli europei. <strong>Dante</strong> scrisse la Divina Commedia. Il Medioevo si chiude con la caduta di Costantinopoli.',
+      events: [
+        { yr: '1088', tx: 'Università di Bologna: la prima al mondo' },
+        { yr: '1096', tx: 'Prima Crociata' },
+        { yr: '1215', tx: 'Magna Carta in Inghilterra' },
+        { yr: '1275', tx: 'Marco Polo alla corte di Kublai Khan' },
+        { yr: '1321', tx: 'Morte di Dante Alighieri' },
+        { yr: '1348', tx: 'Peste Nera in Europa' },
+        { yr: '1453', tx: 'Caduta di Costantinopoli' },
+      ],
+      facts: [
+        'Le cattedrali gotiche furono costruite senza macchine moderne, solo con forza umana e ingegno',
+        'La Peste Nera arrivò dall\'Asia lungo la Via della Seta e cambiò per sempre la struttura sociale',
+        'Nel Medioevo l\'italiano non esisteva ancora: si parlava il volgare, da cui Dante trasse la sua lingua',
+      ]
+    }
+  },
+  {
+    id: 'moderna', label: 'Età Moderna', track: 'main',
+    start: 1492, end: 1815, color: '#1A7A3C',
+    info: {
+      sub: '1492 → 1815 · 323 anni',
+      desc: 'Inizia con la <strong>scoperta dell\'America</strong> da parte di Cristoforo Colombo nel 1492. Il <strong>Rinascimento</strong> trasformò arte, scienza e cultura — Leonardo, Michelangelo, Galileo. La <strong>Riforma Protestante</strong> di Lutero (1517) divise la Chiesa cattolica. La <strong>Rivoluzione Francese</strong> (1789) affermò libertà, uguaglianza e fraternità. Napoleone rivoluzionò l\'Europa.',
+      events: [
+        { yr: '1492', tx: 'Scoperta dell\'America (Colombo)' },
+        { yr: '1517', tx: 'Riforma Protestante (Lutero)' },
+        { yr: '1543', tx: 'Copernico: la Terra gira intorno al Sole' },
+        { yr: '1564', tx: 'Nascita di Galileo Galilei e Shakespeare' },
+        { yr: '1789', tx: 'Rivoluzione Francese' },
+        { yr: '1804', tx: 'Napoleone imperatore' },
+        { yr: '1815', tx: 'Congresso di Vienna' },
+      ],
+      facts: [
+        'La stampa di Gutenberg (1455) permise di diffondere le idee come mai prima — è l\'equivalente di internet per quell\'epoca',
+        'La scoperta dell\'America fu possibile anche perché i Turchi ottomani avevano bloccato le rotte commerciali verso l\'Asia',
+        'La Rivoluzione Francese proclamò per la prima volta i diritti dell\'uomo come principio universale',
+      ]
+    }
+  },
+  {
+    id: 'contemp', label: 'Età Contemporanea', track: 'main',
+    start: 1815, end: 2026, color: '#0E6655',
+    info: {
+      sub: '1815 → oggi · 211 anni',
+      desc: 'Il <strong>Risorgimento</strong> portò all\'Unità d\'Italia nel 1861 (Garibaldi, Mazzini, Cavour). La <strong>Prima Guerra Mondiale</strong> (1914–1918) fu la prima guerra industriale della storia. Il <strong>Fascismo</strong> e il <strong>Nazismo</strong> portarono alla <strong>Seconda Guerra Mondiale</strong> (1939–1945). Dopo la guerra nacquero l\'ONU e, lentamente, l\'Unione Europea.',
+      events: [
+        { yr: '1815', tx: 'Congresso di Vienna: nuova carta dell\'Europa' },
+        { yr: '1848', tx: 'Rivoluzioni in tutta Europa' },
+        { yr: '1861', tx: 'Unità d\'Italia' },
+        { yr: '1914–18', tx: 'Prima Guerra Mondiale' },
+        { yr: '1939–45', tx: 'Seconda Guerra Mondiale' },
+        { yr: '1948', tx: 'Dichiarazione universale dei diritti umani' },
+        { yr: '1989', tx: 'Caduta del Muro di Berlino' },
+        { yr: '2026', tx: 'Oggi' },
+      ],
+      facts: [
+        'L\'Italia come stato unito esiste da soli 165 anni — meno delle ferrovie!',
+        'Le due Guerre Mondiali uccisero complessivamente oltre 80 milioni di persone',
+        'Internet e i telefoni cellulari hanno trasformato il mondo più velocemente di qualsiasi rivoluzione precedente',
+      ]
+    }
+  },
+
+  /* ── PARALLEL 1: IMPERO BIZANTINO ── */
+  {
+    id: 'bizantino', label: 'Impero Bizantino', track: 'par1',
+    start: 395, end: 1453, color: '#B8860B',
+    info: {
+      sub: '395 → 1453 · 1058 anni',
+      desc: 'Dopo la divisione dell\'Impero Romano nel 395, l\'<strong>Impero d\'Oriente</strong> con capitale <strong>Costantinopoli</strong> (l\'antica Bisanzio, oggi Istanbul) sopravvisse per oltre mille anni. Era cristiano ortodosso, parlava greco e preservò la cultura antica. Cadde nel 1453 sotto i colpi dei Turchi Ottomani.',
+      events: [
+        { yr: '395', tx: 'Divisione dell\'Impero Romano' },
+        { yr: '527–565', tx: 'Giustiniano: massima espansione e codice di leggi' },
+        { yr: '537', tx: 'Costruzione della basilica di Santa Sofia' },
+        { yr: '1204', tx: 'I Crociati saccheggiano Costantinopoli' },
+        { yr: '1453', tx: 'Conquista di Maometto II: fine dell\'Impero' },
+      ],
+      facts: [
+        'Costantinopoli era la città più grande e ricca d\'Europa per quasi tutta la sua esistenza',
+        'La sua caduta nel 1453 spinse molti studiosi greci a rifugiarsi in Italia, contribuendo al Rinascimento',
+        'Il Codice di Giustiniano è la base del diritto civile europeo ancora oggi',
+      ]
+    }
+  },
+
+  /* ── PARALLEL 2: SACRO ROMANO IMPERO ── */
+  {
+    id: 'sacro-rom', label: 'Sacro Romano Impero', track: 'par2',
+    start: 800, end: 1806, color: '#6C3483',
+    info: {
+      sub: '800 → 1806 · 1006 anni',
+      desc: 'Fondato dall\'incoronazione di <strong>Carlo Magno</strong> nell\'800, il Sacro Romano Impero comprendeva Germania, Italia settentrionale e altri territori europei. Era la continuazione "cristiana" dell\'Impero Romano, ma in realtà un insieme frammentato di principati. <strong>Voltaire</strong> disse che "non era né sacro, né romano, né un impero". Napoleone lo sciolse nel 1806.',
+      events: [
+        { yr: '800', tx: 'Carlo Magno incoronato imperatore a Roma' },
+        { yr: '962', tx: 'Ottone I consolida l\'Impero' },
+        { yr: '1076–1122', tx: 'Lotta per le investiture (Papa vs Imperatore)' },
+        { yr: '1519', tx: 'Carlo V: massima estensione dell\'Impero' },
+        { yr: '1618–48', tx: 'Guerra dei Trent\'anni' },
+        { yr: '1806', tx: 'Napoleone scioglie l\'Impero' },
+      ],
+      facts: [
+        'La "lotta per le investiture" tra papi e imperatori per il potere di nominare i vescovi durò secoli',
+        'L\'Italia rimase divisa in tanti piccoli stati proprio a causa dei conflitti tra papi e imperatori',
+        'L\'Unione Europea è, in un certo senso, l\'erede spirituale del Sacro Romano Impero',
+      ]
+    }
+  },
+
+  /* ── PARALLEL 3: IMPERO OTTOMANO ── */
+  {
+    id: 'ottomano', label: 'Impero Ottomano', track: 'par3',
+    start: 1299, end: 1922, color: '#922B21',
+    info: {
+      sub: '1299 → 1922 · 623 anni',
+      desc: 'Fondato dai <strong>Turchi Ottomani</strong> in Anatolia, l\'impero raggiunse l\'apice con la conquista di <strong>Costantinopoli</strong> nel 1453 e minacciò Vienna nel 1529. Si estendeva dall\'Anatolia al Medio Oriente, ai Balcani e al Nord Africa. Dopo la Prima Guerra Mondiale si dissolse: dalla sua cenere nacque la Turchia moderna.',
+      events: [
+        { yr: '1299', tx: 'Fondazione del principato ottomano' },
+        { yr: '1453', tx: 'Conquista di Costantinopoli (Maometto II)' },
+        { yr: '1520–66', tx: 'Solimano il Magnifico: apice dell\'Impero' },
+        { yr: '1529', tx: 'Primo assedio di Vienna' },
+        { yr: '1571', tx: 'Battaglia di Lepanto: la flotta cristiana sconfigge gli Ottomani' },
+        { yr: '1683', tx: 'Secondo assedio di Vienna (fallito): inizio del declino' },
+        { yr: '1922', tx: 'Fine dell\'Impero' },
+      ],
+      facts: [
+        'La conquista di Costantinopoli bloccò le rotte commerciali verso l\'Asia: questo spinse gli europei a cercare nuove rotte, portando alla scoperta dell\'America',
+        'Nell\'Ottocento l\'Impero era chiamato "il grande malato d\'Europa" per la sua lenta decadenza',
+        'Mustafa Kemal Atatürk fondò la Turchia moderna nel 1923, laica e con alfabeto latino',
+      ]
+    }
+  },
+];
+
+/* ══════════════════════════════════════════════
+   AXIS DATA
+══════════════════════════════════════════════ */
+const KEY_DATES = [
+  { yr: -753, lbl: '753 a.C.', major: true  },
+  { yr: -509, lbl: '509 a.C.', major: false },
+  { yr: -264, lbl: '264 a.C.', major: false },
+  { yr: -27,  lbl: '27 a.C.',  major: false },
+  { yr:  0,   lbl: 'Anno 0',   major: true, zero: true },
+  { yr:  395, lbl: '395',      major: false },
+  { yr:  476, lbl: '476',      major: true  },
+  { yr:  622, lbl: '622',      major: false },
+  { yr:  800, lbl: '800',      major: true  },
+  { yr: 1000, lbl: '1000',     major: true  },
+  { yr: 1096, lbl: '1096',     major: false },
+  { yr: 1348, lbl: '1348',     major: false },
+  { yr: 1453, lbl: '1453',     major: true  },
+  { yr: 1492, lbl: '1492',     major: true  },
+  { yr: 1517, lbl: '1517',     major: false },
+  { yr: 1789, lbl: '1789',     major: false },
+  { yr: 1815, lbl: '1815',     major: true  },
+  { yr: 1861, lbl: '1861',     major: false },
+  { yr: 1914, lbl: '1914',     major: false },
+  { yr: 1945, lbl: '1945',     major: false },
+  { yr: 1989, lbl: '1989',     major: false },
+  { yr: 2026, lbl: 'Oggi',     major: true  },
+];
+
+/* ══════════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════════ */
+function mk(tag, cls, txt) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  if (txt != null) el.textContent = txt;
+  return el;
+}
+
+function buildAxis() {
+  const ax = mk('div', 'axis');
+
+  // Century ticks (unlabeled)
+  for (let y = Math.ceil(CFG.start / 100) * 100; y <= CFG.end; y += 100) {
+    if (KEY_DATES.some(k => k.yr === y)) continue; // skip — key date will cover it
+    const m = mk('div', 'y-mark');
+    m.style.left = x(y) + 'px';
+    m.appendChild(mk('div', 'tick'));
+    ax.appendChild(m);
+  }
+
+  // Key date marks
+  KEY_DATES.forEach(kd => {
+    const m = mk('div', kd.zero ? 'y-mark zero' : 'y-mark');
+    m.style.left = x(kd.yr) + 'px';
+    m.appendChild(mk('div', kd.major || kd.zero ? 'tick major' : 'tick key'));
+    m.appendChild(mk('div', kd.major || kd.zero ? 'lbl major' : 'lbl key', kd.lbl));
+    ax.appendChild(m);
+  });
+
+  return ax;
+}
+
+function buildTrack(trackId) {
+  const track = mk('div', 'track');
+  PERIODS.filter(p => p.track === trackId).forEach(p => {
+    const el = mk('div', 'period');
+    el.id   = 'p-' + p.id;
+    el.style.cssText = `left:${x(p.start)}px; width:${w(p.start,p.end)}px; background:${p.color};`;
+    el.dataset.id = p.id;
+    el.appendChild(mk('span', 'period-lbl', p.label));
+    el.addEventListener('click', () => selectPeriod(p.id));
+    track.appendChild(el);
+  });
+  return track;
+}
+
+function buildOggiMarker(totalH) {
+  const marker = mk('div', 'oggi-marker');
+  marker.style.left = x(2026) + 'px';
+  const lbl = mk('div', 'oggi-label', 'OGGI');
+  const line = mk('div', 'oggi-line');
+  line.style.height = totalH + 'px';
+  marker.appendChild(lbl);
+  marker.appendChild(line);
+  return marker;
+}
+
+function render() {
+  const inner = document.getElementById('tlInner');
+  inner.style.width = CFG.totalW + 'px';
+
+  inner.appendChild(buildAxis());
+
+  // Group 1 — periodi principali
+  inner.appendChild(mk('div', 'group-label', 'Periodi principali'));
+  inner.appendChild(buildTrack('main'));
+
+  // Separator
+  inner.appendChild(mk('div', 'sep'));
+
+  // Group 2 — entità parallele
+  inner.appendChild(mk('div', 'group-label', 'Entità parallele'));
+  inner.appendChild(buildTrack('par1'));
+  inner.appendChild(buildTrack('par2'));
+  inner.appendChild(buildTrack('par3'));
+
+  inner.appendChild(buildAxis());
+
+  // Today marker — spans all tracks
+  // rough height of content between axes
+  const mid = mk('div');
+  mid.style.cssText = 'position:absolute;top:38px;pointer-events:none;z-index:30;';
+  const approxH = 38 + 18 + CFG.trackH + 1 + 14 + 18 + (CFG.trackH + 7) * 3 + 38;
+  const line = mk('div');
+  line.style.cssText = `position:absolute;left:${x(2026)}px;top:0;width:2px;background:rgba(231,76,60,0.35);height:${approxH}px;`;
+  inner.appendChild(line);
+
+  renderLegend();
+}
+
+function renderLegend() {
+  const leg = document.getElementById('legend');
+  PERIODS.forEach(p => {
+    const item = mk('div', 'leg-item');
+    const dot  = mk('div', 'leg-dot');
+    dot.style.background = p.color;
+    item.appendChild(dot);
+    item.appendChild(mk('span', null, p.label));
+    item.addEventListener('click', () => selectPeriod(p.id));
+    leg.appendChild(item);
+  });
+}
+
+/* ══════════════════════════════════════════════
+   PANEL
+══════════════════════════════════════════════ */
+let active = null;
+
+function selectPeriod(id) {
+  // deselect previous
+  if (active) document.getElementById('p-' + active)?.classList.remove('active');
+  if (active === id) { active = null; closePanel(); return; }
+
+  active = id;
+  document.getElementById('p-' + id)?.classList.add('active');
+
+  const p = PERIODS.find(p => p.id === id);
+  if (!p) return;
+  showPanel(p);
+}
+
+function showPanel(p) {
+  document.getElementById('placeholder').classList.add('hidden');
+  document.getElementById('infoBar').style.background   = p.color;
+  document.getElementById('infoTitle').textContent      = p.label;
+  document.getElementById('infoSub').textContent        = p.info.sub;
+
+  const body = document.getElementById('infoBody');
+  body.innerHTML = '';
+
+  const desc = mk('div', 'info-desc');
+  desc.innerHTML = p.info.desc;
+  body.appendChild(desc);
+
+  if (p.info.events?.length) {
+    body.appendChild(mk('div', 'sec-title', 'Date e eventi chiave'));
+    const row = mk('div', 'events-row');
+    p.info.events.forEach(ev => {
+      const chip = mk('div', 'ev-chip');
+      chip.innerHTML = `<span class="yr">${ev.yr}</span><span class="tx">${ev.tx}</span>`;
+      row.appendChild(chip);
+    });
+    body.appendChild(row);
+  }
+
+  if (p.info.facts?.length) {
+    body.appendChild(mk('div', 'sec-title', 'Lo sapevi?'));
+    const list = mk('div', 'facts-list');
+    p.info.facts.forEach(f => list.appendChild(mk('div', 'fact', f)));
+    body.appendChild(list);
+  }
+
+  const panel = document.getElementById('info-panel');
+  panel.classList.add('visible');
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+function closePanel() {
+  document.getElementById('info-panel').classList.remove('visible');
+  document.getElementById('placeholder').classList.remove('hidden');
+  if (active) { document.getElementById('p-' + active)?.classList.remove('active'); active = null; }
+}
+
+/* ══════════════════════════════════════════════
+   DRAG-TO-SCROLL (desktop)
+══════════════════════════════════════════════ */
+function setupDrag() {
+  const el = document.getElementById('tlOuter');
+  let down = false, startX, sl;
+  el.addEventListener('mousedown', e => { down = true; startX = e.pageX - el.offsetLeft; sl = el.scrollLeft; });
+  el.addEventListener('mouseleave', () => down = false);
+  el.addEventListener('mouseup',    () => down = false);
+  el.addEventListener('mousemove',  e => {
+    if (!down) return;
+    e.preventDefault();
+    el.scrollLeft = sl - (e.pageX - el.offsetLeft - startX) * 1.4;
+  });
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+render();
+setupDrag();
+
+// Scroll to show ancient Rome area on load
+window.addEventListener('load', () => {
+  const outer = document.getElementById('tlOuter');
+  // center on 200 AD (middle of Roman Empire)
+  const target = x(200) - outer.clientWidth * 0.35;
+  outer.scrollLeft = Math.max(0, target);
+});
+</script>
+</body>
+</html>
