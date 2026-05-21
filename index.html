@@ -1455,6 +1455,24 @@ function buildOggiMarker(totalH) {
 /* ══════════════════════════════════════════════
    MOBILE VERTICAL TIMELINE
 ══════════════════════════════════════════════ */
+
+/* Helper: tap affidabile su iOS anche dentro container scrollabili.
+   Usa touchend con check movimento per distinguere tap da scroll,
+   poi preventDefault per evitare il click sintetico duplicato. */
+function addTap(el, fn) {
+  let sx, sy;
+  el.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+  }, { passive: true });
+  el.addEventListener('touchend', e => {
+    const dx = Math.abs(e.changedTouches[0].clientX - sx);
+    const dy = Math.abs(e.changedTouches[0].clientY - sy);
+    if (dx < 14 && dy < 14) { e.preventDefault(); fn(); }
+  }, { passive: false });
+  el.addEventListener('click', fn); // fallback desktop
+}
+
 function renderMobile() {
   const inner = document.getElementById('tlInner');
   inner.innerHTML = '';
@@ -1526,7 +1544,7 @@ function renderMobile() {
       dates.textContent = fmtYear(p.start) + ' – ' + fmtYear(p.end);
       bar.appendChild(dates);
     }
-    bar.addEventListener('click', () => selectPeriod(p.id));
+    addTap(bar, () => selectPeriod(p.id));
     wrap.appendChild(bar);
   });
 
@@ -1568,7 +1586,7 @@ function renderMobile() {
       lblEl.style.fontSize = '7.5px';
       lblEl.textContent = p.label;
       bar.appendChild(lblEl);
-      bar.addEventListener('click', () => selectPeriod(p.id));
+      addTap(bar, () => selectPeriod(p.id));
       wrap.appendChild(bar);
     });
   });
@@ -1578,7 +1596,7 @@ function renderMobile() {
     const dot = mk('div', 'vtl-marker-dot');
     const SZ = 11;
     dot.style.cssText = `left:${AXIS_W - SZ/2}px; top:${yv(m.year) - SZ/2}px; width:${SZ}px; height:${SZ}px; background:${m.color};`;
-    dot.addEventListener('click', () => {
+    addTap(dot, () => {
       if (activeMarkerYear === m.year) { activeMarkerYear = null; closePanel(); return; }
       showMarkerPanel(m);
     });
