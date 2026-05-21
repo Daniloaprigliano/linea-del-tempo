@@ -1224,12 +1224,14 @@ function buildTrack(trackId) {
       const dot = mk('div', 'ev-dot');
       const relX = (ev.y - p.start) / (p.end - p.start) * 100;
       dot.style.left = relX + '%';
-      dot.title = fmtYear(ev.y) + ' — ' + ev.t;
       dot.addEventListener('click', e => {
         e.stopPropagation();
         if (openDot === dot) { closeEvPopup(); return; }
         showEvPopup(dot, ev, p.color);
       });
+      dot.addEventListener('mouseenter', e => showTooltip(e, { year: ev.y, color: p.color, desc: ev.t, short: ev.d }));
+      dot.addEventListener('mousemove',  e => moveTooltip(e));
+      dot.addEventListener('mouseleave', ()  => hideTooltip());
       el.appendChild(dot);
     });
 
