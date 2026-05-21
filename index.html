@@ -1125,6 +1125,7 @@ function hideTooltip() { tt.style.display = 'none'; }
 function showMarkerPanel(m) {
   // deseleziona eventuali periodi attivi
   if (active) { document.getElementById('p-' + active)?.classList.remove('active'); active = null; }
+  activeMarkerYear = m.year;
   document.getElementById('placeholder').classList.add('hidden');
   document.getElementById('infoBar').style.background   = m.color;
   document.getElementById('infoTitle').textContent      = m.desc;
@@ -1163,7 +1164,11 @@ function buildMarkerTrack(inner) {
     el.appendChild(mk('div', 'marker-year', fmtYear(m.year)));
     el.appendChild(mk('div', 'marker-desc', m.desc));
 
-    el.addEventListener('click',      ()  => showMarkerPanel(m));
+    el.addEventListener('click',      ()  => {
+      hideTooltip();
+      if (activeMarkerYear === m.year) { activeMarkerYear = null; closePanel(); return; }
+      showMarkerPanel(m);
+    });
     el.addEventListener('mouseenter', e   => showTooltip(e, m));
     el.addEventListener('mousemove',  e   => moveTooltip(e));
     el.addEventListener('mouseleave', ()  => hideTooltip());
@@ -1221,7 +1226,8 @@ function buildTrack(trackId) {
       dot.style.left = relX + '%';
       dot.title = fmtYear(ev.y) + ' — ' + ev.t;
       dot.addEventListener('click', e => {
-        e.stopPropagation(); // non aprire anche il pannello del periodo
+        e.stopPropagation();
+        if (openDot === dot) { closeEvPopup(); return; }
         showEvPopup(dot, ev, p.color);
       });
       el.appendChild(dot);
@@ -1306,6 +1312,7 @@ function renderLegend() {
    PANEL
 ══════════════════════════════════════════════ */
 let active = null;
+let activeMarkerYear = null;
 
 function selectPeriod(id) {
   // deselect previous
@@ -1360,6 +1367,7 @@ function closePanel() {
   document.getElementById('info-panel').classList.remove('visible');
   document.getElementById('placeholder').classList.remove('hidden');
   if (active) { document.getElementById('p-' + active)?.classList.remove('active'); active = null; }
+  activeMarkerYear = null;
 }
 
 /* ── Chiudi con ESC ── */
