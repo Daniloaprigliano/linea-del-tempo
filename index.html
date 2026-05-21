@@ -106,7 +106,7 @@
     .y-mark.zero .lbl   { color: #B8860B; font-weight: 700; font-size: 10px; }
 
     /* ── EVENT MARKERS (segnaposti stile mappa) ── */
-    .marker-track { position: relative; height: 74px; margin-bottom: 2px; }
+    .marker-track { position: relative; height: 112px; margin-bottom: 2px; }
 
     .marker {
       position: absolute; top: 0;
@@ -686,6 +686,34 @@ const PERIODS = [
 /* Date-evento che delimitano le epoche — mostrate come segnaposti */
 const MARKERS = [
   // row 0
+  /* ── Antichità classica: fila 2 (evita sovrapposizione con -753) ── */
+  { year: -814, desc: 'Cartagine fondata', color: '#6A1B4D', row: 2,
+    short: 'Coloni fenici fondano Cartagine sulla costa dell\'odierna Tunisia: nasce la grande rivale di Roma.',
+    full: 'Nell\'814 a.C. coloni fenici provenienti dalla città di <strong>Tiro</strong> fondano <strong>Cartagine</strong> (in arabo Qart-ḥadašt, "città nuova") sulla costa nord-africana. La leggenda la vuole fondata dalla regina <strong>Didone</strong>. Cartagine crescerà fino a controllare le rotte commerciali di tutto il Mediterraneo occidentale.',
+    facts: [
+      'La leggenda racconta che Didone ottenne tanta terra quanta ne poteva circondare con una pelle di bue — tagliandola a strisce, riuscì a circondare un\'intera collina',
+      'Cartagine era nota per la sua flotta: controllava Spagna, Sardegna, Sicilia e coste africane',
+      'I Fenici, antenati dei Cartaginesi, hanno inventato l\'alfabeto da cui deriva il nostro',
+    ] },
+
+  { year: -776, desc: 'Olimpiadi — Grecia arcaica', color: '#1565C0', row: 2,
+    short: 'I primi Giochi Olimpici segnano l\'inizio del periodo classico greco documentato.',
+    full: 'Nel <strong>776 a.C.</strong> si svolgono i primi <strong>Giochi Olimpici</strong> a Olimpia, in onore di Zeus. I giochi, aperti a tutti i Greci liberi, si terranno ogni quattro anni ininterrottamente per oltre mille anni. Questa data segna convenzionalmente l\'inizio del <strong>periodo arcaico greco</strong>, quando le poleis si organizzano e la civiltà greca fiorisce.',
+    facts: [
+      'Durante i Giochi Olimpici era in vigore la "tregua sacra": le guerre si sospendevano',
+      'Le competizioni includevano corsa, lotta, lancio del disco e corsa con armatura',
+      'I Giochi furono soppressi dall\'imperatore romano Teodosio nel 393 d.C. come riti pagani',
+    ] },
+
+  { year: -146, desc: 'Roma conquista il Mediterraneo', color: '#555', row: 2,
+    short: 'Nel 146 a.C. Roma distrugge Cartagine e conquista la Grecia: domina tutto il Mediterraneo.',
+    full: 'Nel <strong>146 a.C.</strong> avvengono due eventi decisivi nello stesso anno: <strong>Scipione Emiliano</strong> rade al suolo <strong>Cartagine</strong> dopo la Terza guerra punica (fine dell\'eterno rivale di Roma), e il generale <strong>Lucio Mummio</strong> saccheggia <strong>Corinto</strong> e trasforma la Grecia in provincia romana. Roma diventa la padrona incontrastata del Mediterraneo.',
+    facts: [
+      'Il Senato romano aveva discusso per anni se distruggere o risparmiare Cartagine: Catone vinse con il suo "Carthago delenda est"',
+      'Dopo la conquista, la Grecia portò la sua cultura a Roma: artisti, filosofi e precettori greci inondarono l\'Urbe',
+      'I 146 anni tra la Prima guerra punica e la distruzione di Cartagine furono il periodo in cui Roma diventò potenza mondiale',
+    ] },
+
   { year: -753, desc: 'Fondazione di Roma', color: '#8B1A1A', row: 0,
     short: 'Romolo fonda Roma il 21 aprile del 753 a.C. sui sette colli lungo il Tevere.',
     full: 'Secondo la tradizione, la città fu fondata da <strong>Romolo</strong> — che uccise il fratello Remo per decidere il nome — il 21 aprile del 753 a.C. In realtà la fondazione fu un processo graduale di fusione di villaggi. Roma divenne presto la città dominante del Lazio.',
@@ -1005,8 +1033,8 @@ function render() {
 
   // Linee verticali marker + linea "oggi": calcoliamo l'altezza approssimativa
   // axis(38) + label(30) + markers(74+2) + epoch(48+3) + main(46+7) + sep(29) + label(30) + par×3(53×3) + axis(38)
-  // axis+label+markers+epoch+main + sep+label+ant×2 + sep+label+par×3 + axis
-  const approxH = 38 + 30 + 76 + 51 + 53 + 29 + 30 + 106 + 29 + 30 + 159 + 38; // ≈ 669px
+  // axis+label+markers(3 rows)+epoch+main + sep+label+ant×2 + sep+label+par×3 + axis
+  const approxH = 38 + 30 + 114 + 51 + 53 + 29 + 30 + 106 + 29 + 30 + 159 + 38; // ≈ 707px
   addMarkerVlines(inner, approxH);
 
   const line = mk('div');
