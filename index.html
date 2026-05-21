@@ -504,6 +504,9 @@
       /* touch-action esplicita per risposta immediata al tap */
       .vtl-bar, .vtl-marker-dot { touch-action: manipulation; }
 
+      /* Puntini evento più grandi su mobile */
+      .vtl-bar .ev-dot { width: 12px; height: 12px; touch-action: manipulation; }
+
       /* filtri mobile: classi applicate direttamente sull'elemento */
       .hide-ant [data-g="ant"] { display: none; }
       .hide-med [data-g="med"] { display: none; }
@@ -1459,18 +1462,23 @@ function buildOggiMarker(totalH) {
 /* Helper: tap affidabile su iOS anche dentro container scrollabili.
    Usa touchend con check movimento per distinguere tap da scroll,
    poi preventDefault per evitare il click sintetico duplicato. */
-function addTap(el, fn) {
+function addTap(el, fn, stopProp = false) {
   let sx, sy;
   el.addEventListener('touchstart', e => {
+    if (stopProp) e.stopPropagation();
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
   }, { passive: true });
   el.addEventListener('touchend', e => {
     const dx = Math.abs(e.changedTouches[0].clientX - sx);
     const dy = Math.abs(e.changedTouches[0].clientY - sy);
-    if (dx < 14 && dy < 14) { e.preventDefault(); fn(); }
+    if (dx < 14 && dy < 14) {
+      e.preventDefault();
+      if (stopProp) e.stopPropagation();
+      fn();
+    }
   }, { passive: false });
-  el.addEventListener('click', fn); // fallback desktop
+  el.addEventListener('click', e => { if (stopProp) e.stopPropagation(); fn(); }); // fallback desktop
 }
 
 let mobileVPY = 0.52; // scala verticale, modificabile dal pinch zoom
@@ -1546,6 +1554,21 @@ function renderMobile() {
       dates.textContent = fmtYear(p.start) + ' – ' + fmtYear(p.end);
       bar.appendChild(dates);
     }
+    // Puntini evento sulla barra verticale
+    EVENTS.filter(ev => ev.p === p.id).forEach(ev => {
+      const topInBar = (ev.y - p.start) * VPY;
+      if (topInBar < 4 || topInBar > barH - 4) return; // evita il clipping ai bordi
+      const dot = mk('div', 'ev-dot');
+      dot.style.top  = topInBar + 'px';
+      dot.style.left = '50%';
+      dot.style.transform = 'translate(-50%, -50%)';
+      addTap(dot, () => {
+        if (openDot === dot) { closeEvPopup(); return; }
+        showEvPopup(dot, ev, p.color);
+      }, true); // stopProp: non aprire anche il pannello del periodo
+      bar.appendChild(dot);
+    });
+
     addTap(bar, () => selectPeriod(p.id));
     wrap.appendChild(bar);
   });
