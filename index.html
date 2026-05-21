@@ -1231,6 +1231,9 @@ function buildTrack(trackId) {
     el.dataset.id = p.id;
     el.appendChild(mk('span', 'period-lbl', p.label));
     el.addEventListener('click', () => selectPeriod(p.id));
+    el.addEventListener('mouseenter', e => showEpochTooltip(e, { label: p.label, start: p.start, end: p.end, color: p.color }));
+    el.addEventListener('mousemove',  e => moveTooltip(e));
+    el.addEventListener('mouseleave', ()  => hideTooltip());
 
     // Aggiunge i puntini degli eventi
     EVENTS.filter(ev => ev.p === p.id).forEach(ev => {
