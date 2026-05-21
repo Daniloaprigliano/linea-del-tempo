@@ -488,15 +488,21 @@
         min-width: 0;
       }
 
-      /* tl-outer mobile: no scroll orizzontale, scorre la pagina */
+      /* tl-outer mobile: scroll verticale nel proprio contenitore */
       .tl-outer {
-        overflow-x: visible;
-        overflow-y: visible;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+        min-height: 0;
         cursor: default;
-        padding: 0;
+        padding: 0 0 120px; /* spazio per il bottom sheet */
       }
       .tl-outer:active { cursor: default; }
       .tl-inner { width: 100% !important; }
+
+      /* touch-action esplicita per risposta immediata al tap */
+      .vtl-bar, .vtl-marker-dot { touch-action: manipulation; }
 
       /* filtri mobile: classi applicate direttamente sull'elemento */
       .hide-ant [data-g="ant"] { display: none; }
