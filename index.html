@@ -146,6 +146,26 @@
       background: var(--mc, #999); opacity: 0.2;
     }
 
+    /* Hover sul pin */
+    .marker { cursor: pointer; }
+    .marker-pin { transition: transform 0.15s; }
+    .marker:hover .marker-pin { transform: scale(1.35); }
+
+    /* Tooltip al passaggio del mouse */
+    #marker-tooltip {
+      position: fixed; display: none; z-index: 9999;
+      pointer-events: none;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+      max-width: 240px;
+    }
+    #marker-tooltip .tt-year  { font-size: 9px; font-weight: 800; margin-bottom: 3px; }
+    #marker-tooltip .tt-title { font-size: 12px; font-weight: 700; color: #111; margin-bottom: 5px; }
+    #marker-tooltip .tt-body  { font-size: 11px; color: #666; line-height: 1.5; }
+
     /* ── TRACK GROUPS ── */
     .group-label {
       font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
@@ -612,18 +632,57 @@ const PERIODS = [
 ══════════════════════════════════════════════ */
 /* Date-evento che delimitano le epoche — mostrate come segnaposti */
 const MARKERS = [
-  // row 0 (in alto): 753, 27, 476, 1000, 1453, 1815
-  { year: -753, desc: 'Fondazione di Roma',    color: '#8B1A1A', row: 0 },
-  { year:  -27, desc: 'Augusto imperatore',    color: '#D35400', row: 0 },
-  { year:  476, desc: 'Caduta di Roma',        color: '#2471A3', row: 0 },
-  { year: 1000, desc: 'Anno Mille',            color: '#154360', row: 0 },
-  { year: 1453, desc: 'Caduta Costantinopoli', color: '#B8860B', row: 0 },
-  { year: 1815, desc: 'Congresso di Vienna',   color: '#0E6655', row: 0 },
-  // row 1 (leggermente più in basso): 509, 0, 800, 1492
-  { year: -509, desc: 'Nasce la Repubblica',   color: '#C0392B', row: 1 },
-  { year:    0, desc: 'Nascita di Cristo',     color: '#B8860B', row: 1 },
-  { year:  800, desc: 'Carlo Magno',           color: '#6C3483', row: 1 },
-  { year: 1492, desc: 'Scoperta dell\'America',color: '#1A7A3C', row: 1 },
+  // row 0
+  { year: -753, desc: 'Fondazione di Roma', color: '#8B1A1A', row: 0,
+    short: 'Romolo fonda Roma il 21 aprile del 753 a.C. sui sette colli lungo il Tevere.',
+    full: 'Secondo la tradizione, la città fu fondata da <strong>Romolo</strong> — che uccise il fratello Remo per decidere il nome — il 21 aprile del 753 a.C. In realtà la fondazione fu un processo graduale di fusione di villaggi. Roma divenne presto la città dominante del Lazio.',
+    facts: ['Il 21 aprile è ancora oggi festeggiato come "Natale di Roma"','Gli scavi sul Palatino confermano insediamenti già dal IX secolo a.C.','La leggenda vuole che Romolo e Remo fossero allattati da una lupa'] },
+
+  { year: -27, desc: 'Augusto imperatore', color: '#D35400', row: 0,
+    short: 'Ottaviano riceve il titolo di Augusto e diventa il primo imperatore di Roma.',
+    full: '<strong>Ottaviano</strong>, nipote adottivo di Giulio Cesare, sconfigge Marco Antonio e Cleopatra e riceve dal Senato il titolo di <strong>Augusto</strong> ("il venerabile"). Formalmente Roma è ancora una repubblica, ma di fatto detiene il potere assoluto. Inizia la <strong>Pax Romana</strong>: quasi due secoli di pace e prosperità.',
+    facts: ['Il mese di agosto prende il nome proprio da lui','La Pax Romana durò circa 200 anni: un record nella storia occidentale','Sotto Augusto vissero Virgilio, Orazio e Ovidio'] },
+
+  { year: 476, desc: 'Caduta di Roma', color: '#2471A3', row: 0,
+    short: 'Il generale Odoacre depone l\'ultimo imperatore d\'Occidente: inizia il Medioevo.',
+    full: 'Il 4 settembre del 476 il generale germanico <strong>Odoacre</strong> depone <strong>Romolo Augustolo</strong>, l\'ultimo imperatore romano d\'Occidente, e invia le insegne imperiali a Costantinopoli. È la data convenzionale della fine dell\'Antichità e dell\'inizio del <strong>Medioevo</strong>. L\'Impero d\'Oriente (Bisanzio) sopravvive per altri mille anni.',
+    facts: ['Romolo Augustolo aveva solo 16 anni quando fu deposto','La caduta fu lenta: l\'Impero si sgretolava da decenni','In realtà la vita quotidiana non cambiò quasi subito'] },
+
+  { year: 1000, desc: 'Anno Mille', color: '#154360', row: 0,
+    short: 'L\'Anno Mille era atteso con timore. Nulla accadde, e cominciò una grande rinascita.',
+    full: 'L\'anno 1000 era atteso da molti cristiani come possibile fine del mondo. Non accadde nulla di catastrofico. Anzi, l\'XI secolo fu un\'epoca di <strong>grande rinascita</strong>: la popolazione crebbe, le città ripresero vita, i commerci si svilupparono e nacquero i Comuni in Italia.',
+    facts: ['La "paura dell\'Anno Mille" fu in parte esagerata dagli storici romantici dell\'Ottocento','Proprio attorno al 1000 i Vichinghi raggiunsero l\'America (Leif Eriksson)','L\'università di Bologna, la più antica del mondo, nacque nel 1088'] },
+
+  { year: 1453, desc: 'Caduta di Costantinopoli', color: '#B8860B', row: 0,
+    short: 'I Turchi Ottomani conquistano Costantinopoli: fine dell\'Impero Bizantino.',
+    full: 'Il 29 maggio del 1453 il sultano <strong>Maometto II</strong> conquista <strong>Costantinopoli</strong> dopo 53 giorni di assedio, usando per la prima volta i cannoni come arma d\'assedio principale. Cade l\'<strong>Impero Bizantino</strong> dopo 1058 anni. Molti intellettuali greci fuggono in Italia con i manoscritti antichi, accelerando il Rinascimento.',
+    facts: ['L\'ultima resistenza avvenne nella basilica di Santa Sofia, poi trasformata in moschea','La fuga degli studiosi greci favorì la riscoperta di Platone e Aristotele','La chiusura delle rotte verso l\'Asia spinse a cercare nuove vie: da qui la scoperta dell\'America'] },
+
+  { year: 1815, desc: 'Congresso di Vienna', color: '#0E6655', row: 0,
+    short: 'Le grandi potenze ridisegnano la carta dell\'Europa dopo la sconfitta di Napoleone.',
+    full: 'Dopo la sconfitta definitiva di <strong>Napoleone</strong>, le grandi potenze si riuniscono a <strong>Vienna</strong> (1814–1815) per ridisegnare la carta politica dell\'Europa. Il principe austriaco <strong>Metternich</strong> guida i lavori. Si ripristinano le monarchie e nasce la <strong>Restaurazione</strong>, destinata a durare fino al 1914.',
+    facts: ['"Il Congresso balla ma non marcia", ironia dell\'epoca sui festeggiamenti','L\'Italia rimase divisa in sette stati: ci vorranno altri 46 anni per l\'Unità','Il Congresso di Vienna stabilì le frontiere europee più durature della storia moderna'] },
+
+  // row 1
+  { year: -509, desc: 'Nasce la Repubblica', color: '#C0392B', row: 1,
+    short: 'I Romani cacciano l\'ultimo re e istituiscono la Repubblica con due consoli.',
+    full: 'Nel 509 a.C. i Romani cacciano <strong>Tarquinio il Superbo</strong>, l\'ultimo re, colpevole di tirannide. Istituiscono la <strong>Repubblica</strong>: due <strong>consoli</strong> eletti ogni anno si dividono il potere supremo, impedendo che una sola persona accumuli troppa autorità. Nasce il Senato come organo centrale di governo.',
+    facts: ['I due consoli avevano il diritto di veto l\'uno sull\'altro','In caso di emergenza si nominava un dittatore, ma solo per 6 mesi','La parola "Repubblica" viene dal latino res publica: la cosa di tutti'] },
+
+  { year: 0, desc: 'Nascita di Cristo', color: '#B8860B', row: 1,
+    short: 'La nascita di Gesù divide il calendario in avanti Cristo e dopo Cristo.',
+    full: 'La nascita di <strong>Gesù Cristo</strong> a Betlemme — in una data calcolata con imprecisione dai monaci medievali — divide convenzionalmente il calendario occidentale in <em>avanti Cristo</em> (a.C.) e <em>dopo Cristo</em> (d.C.). Il Cristianesimo si diffuse lentamente nell\'Impero Romano fino a diventare religione di stato nel 380 d.C.',
+    facts: ['Gesù nacque probabilmente tra il 7 e il 4 a.C.: i monaci sbagliarono i calcoli','Il sistema a.C./d.C. fu inventato dal monaco Dionigi il Piccolo nel VI secolo','Il Cristianesimo fu perseguitato per secoli: Costantino lo legalizzò nel 313 d.C.'] },
+
+  { year: 800, desc: 'Carlo Magno', color: '#6C3483', row: 1,
+    short: 'Carlo Magno è incoronato imperatore a Roma la notte di Natale dell\'800.',
+    full: 'La notte di Natale dell\'800, Papa <strong>Leone III</strong> incorona <strong>Carlo Magno</strong> imperatore nella basilica di San Pietro. Carlo, re dei Franchi, aveva già unificato gran parte dell\'Europa occidentale. Nasce il <strong>Sacro Romano Impero</strong>. Carlo promuove la cultura e riforma la scrittura con la minuscola carolina.',
+    facts: ['Carlo Magno non sapeva scrivere, ma dormiva con la tavoletta cerata sotto il cuscino per esercitarsi','Il suo impero fu diviso tra i nipoti nell\'843: nacquero le premesse di Francia e Germania','La capitale era Aquisgrana (oggi in Germania), non Roma'] },
+
+  { year: 1492, desc: 'Scoperta dell\'America', color: '#1A7A3C', row: 1,
+    short: 'Colombo approda nelle Americhe il 12 ottobre 1492: inizia l\'Età Moderna.',
+    full: 'Il 12 ottobre del 1492 <strong>Cristoforo Colombo</strong>, navigatore genovese al servizio della Spagna, approda su un\'isola dei Caraibi credendo di aver raggiunto le Indie. Aveva scoperto un continente sconosciuto agli Europei. Questa data segna la fine del <strong>Medioevo</strong> e l\'inizio dell\'<strong>Età Moderna</strong>.',
+    facts: ['Colombo morì convinto di aver raggiunto l\'Asia: fu Amerigo Vespucci a capire che era un nuovo continente','Le popolazioni indigene erano 50-70 milioni: la colonizzazione ne sterminò la maggior parte','Mais, patata, pomodoro e cacao vengono tutti dall\'America'] },
 ];
 
 const EPOCHS = [
@@ -695,6 +754,55 @@ function buildAxis() {
   return ax;
 }
 
+/* ── Tooltip globale (segnaposti) ── */
+const tt = document.createElement('div');
+tt.id = 'marker-tooltip';
+document.body.appendChild(tt);
+
+function showTooltip(e, m) {
+  tt.style.setProperty('--mc', m.color);
+  tt.innerHTML =
+    `<div class="tt-year" style="color:${m.color}">${fmtYear(m.year)}</div>` +
+    `<div class="tt-title">${m.desc}</div>` +
+    `<div class="tt-body">${m.short}</div>`;
+  tt.style.display = 'block';
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  const gap = 14, tw = 240;
+  let lx = e.clientX + gap;
+  if (lx + tw > window.innerWidth) lx = e.clientX - tw - gap;
+  tt.style.left = lx + 'px';
+  tt.style.top  = (e.clientY - 40) + 'px';
+}
+function hideTooltip() { tt.style.display = 'none'; }
+
+function showMarkerPanel(m) {
+  // deseleziona eventuali periodi attivi
+  if (active) { document.getElementById('p-' + active)?.classList.remove('active'); active = null; }
+  document.getElementById('placeholder').classList.add('hidden');
+  document.getElementById('infoBar').style.background   = m.color;
+  document.getElementById('infoTitle').textContent      = m.desc;
+  document.getElementById('infoSub').textContent        = fmtYear(m.year);
+
+  const body = document.getElementById('infoBody');
+  body.innerHTML = '';
+  const desc = mk('div', 'info-desc');
+  desc.innerHTML = m.full;
+  body.appendChild(desc);
+
+  if (m.facts?.length) {
+    body.appendChild(mk('div', 'sec-title', 'Lo sapevi?'));
+    const list = mk('div', 'facts-list');
+    m.facts.forEach(f => list.appendChild(mk('div', 'fact', f)));
+    body.appendChild(list);
+  }
+
+  const panel = document.getElementById('info-panel');
+  panel.classList.add('visible');
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
 function buildMarkerTrack(inner) {
   const ROW_H = 34; // px fra le due file di pin
   const track = mk('div', 'marker-track');
@@ -707,10 +815,14 @@ function buildMarkerTrack(inner) {
 
     el.appendChild(mk('div', 'marker-pin'));
     el.appendChild(mk('div', 'marker-tri'));
-    const yr = mk('div', 'marker-year', fmtYear(m.year));
-    const ds = mk('div', 'marker-desc', m.desc);
-    el.appendChild(yr);
-    el.appendChild(ds);
+    el.appendChild(mk('div', 'marker-year', fmtYear(m.year)));
+    el.appendChild(mk('div', 'marker-desc', m.desc));
+
+    el.addEventListener('click',      ()  => showMarkerPanel(m));
+    el.addEventListener('mouseenter', e   => showTooltip(e, m));
+    el.addEventListener('mousemove',  e   => moveTooltip(e));
+    el.addEventListener('mouseleave', ()  => hideTooltip());
+
     track.appendChild(el);
   });
 
