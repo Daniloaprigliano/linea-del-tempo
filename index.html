@@ -487,6 +487,89 @@
         max-width: none !important;
         min-width: 0;
       }
+
+      /* tl-outer mobile: no scroll orizzontale, scorre la pagina */
+      .tl-outer {
+        overflow-x: visible;
+        overflow-y: visible;
+        cursor: default;
+        padding: 0;
+      }
+      .tl-outer:active { cursor: default; }
+      .tl-inner { width: 100% !important; }
+
+      /* filtri mobile: classi applicate direttamente sull'elemento */
+      .hide-ant [data-g="ant"] { display: none; }
+      .hide-med [data-g="med"] { display: none; }
+
+      /* Barre verticali mobile */
+      .vtl-wrap { position: relative; }
+      .vtl-bar {
+        position: absolute;
+        border-radius: 7px;
+        cursor: pointer;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        transition: filter 0.12s;
+      }
+      .vtl-bar:active { filter: brightness(1.15); }
+      .vtl-bar.active { outline: 3px solid rgba(255,255,255,0.85); outline-offset: 2px; z-index: 10 !important; }
+      .vtl-lbl {
+        font-weight: 700;
+        color: rgba(255,255,255,0.95);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 5px 7px 2px;
+        line-height: 1.2;
+      }
+      .vtl-lbl-dates {
+        color: rgba(255,255,255,0.65);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 7px;
+        line-height: 1.2;
+      }
+      .vtl-yr-lbl {
+        position: absolute;
+        text-align: right;
+        white-space: nowrap;
+        color: #AAA;
+        pointer-events: none;
+      }
+      .vtl-tick {
+        position: absolute;
+        right: 0;
+        height: 1px;
+        background: rgba(0,0,0,0.07);
+        pointer-events: none;
+      }
+      .vtl-marker-dot {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.28);
+        cursor: pointer;
+        z-index: 20;
+        transition: transform 0.15s;
+      }
+      .vtl-marker-dot:active { transform: scale(1.4); }
+      .vtl-col-label {
+        position: absolute;
+        font-size: 7px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.55;
+        pointer-events: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   </style>
 </head>
@@ -531,7 +614,7 @@
   <span>Seleziona un periodo sulla linea del tempo per leggerne la scheda</span>
 </div>
 
-<div class="scroll-hint">← scorri orizzontalmente →</div>
+<div class="scroll-hint" id="scroll-hint">← scorri orizzontalmente →</div>
 
 <div class="tl-outer" id="tlOuter">
   <div class="tl-inner" id="tlInner">
@@ -1363,6 +1446,153 @@ function buildOggiMarker(totalH) {
   return marker;
 }
 
+/* ══════════════════════════════════════════════
+   MOBILE VERTICAL TIMELINE
+══════════════════════════════════════════════ */
+function renderMobile() {
+  const inner = document.getElementById('tlInner');
+  inner.innerHTML = '';
+  inner.style.width = '';
+
+  const VPY    = 0.52;                          // px per anno (verticale)
+  const yv     = yr  => (yr - CFG.start) * VPY; // anno → posizione verticale
+  const hv     = (a, b) => (b - a) * VPY;       // durata → altezza
+  const totalH = (CFG.end - CFG.start) * VPY;
+
+  const W       = window.innerWidth;
+  const AXIS_W  = 46;
+  const avail   = W - AXIS_W - 8;              // 8px margine destro
+  const MAIN_W  = Math.round(avail * 0.57);
+  const PAR_W   = avail - MAIN_W - 4;          // 4px gap tra main e par
+  const PAR_X   = AXIS_W + MAIN_W + 4;
+  const SUB_W   = Math.floor((PAR_W - 4) / 3); // 3 sub-colonne nel parallelo
+
+  const subX = i => PAR_X + i * (SUB_W + 2);  // x di ogni sub-colonna
+
+  const wrap = mk('div', 'vtl-wrap');
+  wrap.style.cssText = `height:${totalH + 40}px; margin: 0 0 16px;`;
+
+  /* ── LINEA DIVISORIA ASSE ── */
+  const axisDivider = mk('div');
+  axisDivider.style.cssText = `position:absolute; left:${AXIS_W}px; top:0; bottom:0; width:1px; background:#DDD; pointer-events:none; z-index:1;`;
+  wrap.appendChild(axisDivider);
+
+  /* ── EPOCH BANDS ── */
+  EPOCHS.forEach(ep => {
+    const band = mk('div');
+    band.style.cssText = `position:absolute; left:${AXIS_W + 1}px; right:8px; top:${yv(ep.start)}px; height:${hv(ep.start, ep.end)}px; background:${ep.color}; opacity:0.06; pointer-events:none; z-index:0;`;
+    wrap.appendChild(band);
+
+    const lbl = mk('div', 'vtl-col-label');
+    lbl.textContent = ep.label.toUpperCase();
+    lbl.style.cssText = `position:absolute; left:${AXIS_W + 6}px; top:${yv(ep.start) + 5}px; color:${ep.color}; font-size:7px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; opacity:0.5; pointer-events:none; z-index:1;`;
+    wrap.appendChild(lbl);
+  });
+
+  /* ── ANNO ASSE (etichette e tacche) ── */
+  const axisYears = [-800,-700,-600,-500,-400,-300,-200,-100,0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000];
+  axisYears.forEach(yr => {
+    const isMajor = [0, -753, 476, 1492, 1815].includes(yr);
+    const tick = mk('div', 'vtl-tick');
+    tick.style.cssText = `position:absolute; left:0; right:0; top:${yv(yr)}px; height:1px; background:rgba(0,0,0,${isMajor ? 0.12 : 0.05});`;
+    wrap.appendChild(tick);
+
+    const lbl = mk('div', 'vtl-yr-lbl');
+    lbl.textContent = yr < 0 ? Math.abs(yr) + 'a.C.' : (yr === 0 ? 'A.0' : String(yr));
+    lbl.style.cssText = `position:absolute; right:${W - AXIS_W + 4}px; top:${yv(yr) - 7}px; width:${AXIS_W - 6}px; font-size:${isMajor ? 8.5 : 7.5}px; font-weight:${isMajor ? 700 : 400}; color:${isMajor ? '#777' : '#BBB'}; text-align:right;`;
+    wrap.appendChild(lbl);
+  });
+
+  /* ── MAIN TRACK ── */
+  PERIODS.filter(p => p.track === 'main').forEach(p => {
+    const rawH = hv(p.start, p.end);
+    const barH = Math.max(30, rawH);
+    const bar  = mk('div', 'vtl-bar');
+    bar.id = 'p-' + p.id;
+    bar.style.cssText = `left:${AXIS_W + 2}px; width:${MAIN_W - 2}px; top:${yv(p.start)}px; height:${barH}px; background:${p.color}; z-index:3;`;
+    const lblEl = mk('div', 'vtl-lbl');
+    lblEl.style.fontSize = MAIN_W > 160 ? '11px' : '9.5px';
+    lblEl.textContent = p.label;
+    bar.appendChild(lblEl);
+    if (rawH > 60) {
+      const dates = mk('div', 'vtl-lbl-dates');
+      dates.style.fontSize = '8.5px';
+      dates.textContent = fmtYear(p.start) + ' – ' + fmtYear(p.end);
+      bar.appendChild(dates);
+    }
+    bar.addEventListener('click', () => selectPeriod(p.id));
+    wrap.appendChild(bar);
+  });
+
+  /* ── PARALLEL TRACKS ── */
+  // trackId → sub-colonna (0,1,2) e gruppo filtro
+  const PAR_CFG = [
+    { track:'ant1', sub:0, g:'ant' },
+    { track:'ant2', sub:1, g:'ant' },
+    { track:'par1', sub:0, g:'med' },
+    { track:'par2', sub:1, g:'med' },
+    { track:'par3', sub:2, g:'med' },
+  ];
+
+  // Intestazioni sub-colonne (mostrate solo nelle epoche giuste)
+  const subHeaders = [
+    { text:'Grecia',  x:subX(0), y:yv(-800), g:'ant', color:'#1565C0' },
+    { text:'Cart.',   x:subX(1), y:yv(-800), g:'ant', color:'#6A1B4D' },
+    { text:'Biz.',    x:subX(0), y:yv(395),  g:'med', color:'#B8860B' },
+    { text:'S.R.I.',  x:subX(1), y:yv(800),  g:'med', color:'#6C3483' },
+    { text:'Ott.',    x:subX(2), y:yv(1299), g:'med', color:'#922B21' },
+  ];
+  subHeaders.forEach(h => {
+    const el = mk('div', 'vtl-col-label');
+    el.dataset.g = h.g;
+    el.textContent = h.text;
+    el.style.cssText = `position:absolute; left:${h.x + 1}px; top:${h.y}px; width:${SUB_W - 2}px; color:${h.color};`;
+    wrap.appendChild(el);
+  });
+
+  PAR_CFG.forEach(({ track, sub, g }) => {
+    PERIODS.filter(p => p.track === track).forEach(p => {
+      const rawH = hv(p.start, p.end);
+      const barH = Math.max(24, rawH);
+      const bar  = mk('div', 'vtl-bar');
+      bar.id       = 'p-' + p.id;
+      bar.dataset.g = g;
+      bar.style.cssText = `left:${subX(sub)}px; width:${SUB_W}px; top:${yv(p.start)}px; height:${barH}px; background:${p.color}; z-index:2; opacity:0.9;`;
+      const lblEl = mk('div', 'vtl-lbl');
+      lblEl.style.fontSize = '7.5px';
+      lblEl.textContent = p.label;
+      bar.appendChild(lblEl);
+      bar.addEventListener('click', () => selectPeriod(p.id));
+      wrap.appendChild(bar);
+    });
+  });
+
+  /* ── MARKERS (punti sull'asse) ── */
+  MARKERS.forEach(m => {
+    const dot = mk('div', 'vtl-marker-dot');
+    const SZ = 11;
+    dot.style.cssText = `left:${AXIS_W - SZ/2}px; top:${yv(m.year) - SZ/2}px; width:${SZ}px; height:${SZ}px; background:${m.color};`;
+    dot.addEventListener('click', () => {
+      if (activeMarkerYear === m.year) { activeMarkerYear = null; closePanel(); return; }
+      showMarkerPanel(m);
+    });
+    wrap.appendChild(dot);
+  });
+
+  /* ── LINEA OGGI ── */
+  const todayY = yv(2026);
+  const todayLine = mk('div');
+  todayLine.style.cssText = `position:absolute; left:${AXIS_W}px; right:0; top:${todayY}px; height:2px; background:#E74C3C; z-index:15; pointer-events:none;`;
+  const todayLbl = mk('div');
+  todayLbl.textContent = 'OGGI';
+  todayLbl.style.cssText = `position:absolute; left:${AXIS_W + 4}px; top:${todayY - 16}px; background:#E74C3C; color:white; font-size:8px; font-weight:700; padding:2px 6px; border-radius:4px; z-index:15; pointer-events:none;`;
+  wrap.appendChild(todayLine);
+  wrap.appendChild(todayLbl);
+
+  inner.appendChild(wrap);
+  renderLegend();
+}
+
 function render() {
   const inner = document.getElementById('tlInner');
   inner.style.width = CFG.totalW + 'px';
@@ -1525,19 +1755,37 @@ function setupDrag() {
 /* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
-render();
-setupDrag();
-setupFilters();
+function init() {
+  const inner = document.getElementById('tlInner');
+  inner.innerHTML = '';
+  document.getElementById('legend').innerHTML = '';
+  const hint = document.getElementById('scroll-hint');
+  if (hint) hint.textContent = window.innerWidth <= 768 ? '↕ scorri verticalmente' : '← scorri orizzontalmente →';
+  if (window.innerWidth <= 768) {
+    renderMobile();
+  } else {
+    render();
+    setupDrag();
+    // Scroll to Roman Empire area on desktop
+    window.addEventListener('load', () => {
+      const outer = document.getElementById('tlOuter');
+      const target = x(200) - outer.clientWidth * 0.35;
+      outer.scrollLeft = Math.max(0, target);
+    }, { once: true });
+  }
+  setupFilters();
+}
 
-// Scroll to show ancient Rome area on load
-window.addEventListener('load', () => {
-  const outer = document.getElementById('tlOuter');
-  // Su mobile centra sul 500 d.C. (buon punto di partenza per vedere l'intera storia)
-  // Su desktop centra sul 200 d.C. (cuore dell'Impero Romano)
-  const targetYear = window.innerWidth <= 768 ? 500 : 200;
-  const target = x(targetYear) - outer.clientWidth * 0.35;
-  outer.scrollLeft = Math.max(0, target);
-});
+init();
+
+// Re-render on orientation change
+window.addEventListener('resize', (() => {
+  let lastW = window.innerWidth;
+  return () => {
+    const newW = window.innerWidth;
+    if ((lastW <= 768) !== (newW <= 768)) { lastW = newW; init(); }
+  };
+})());
 </script>
 </body>
 </html>
