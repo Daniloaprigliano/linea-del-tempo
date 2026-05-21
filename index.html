@@ -1473,12 +1473,14 @@ function addTap(el, fn) {
   el.addEventListener('click', fn); // fallback desktop
 }
 
+let mobileVPY = 0.52; // scala verticale, modificabile dal pinch zoom
+
 function renderMobile() {
   const inner = document.getElementById('tlInner');
   inner.innerHTML = '';
   inner.style.width = '';
 
-  const VPY    = 0.52;                          // px per anno (verticale)
+  const VPY    = mobileVPY;                     // px per anno (verticale)
   const yv     = yr  => (yr - CFG.start) * VPY; // anno → posizione verticale
   const hv     = (a, b) => (b - a) * VPY;       // durata → altezza
   const totalH = (CFG.end - CFG.start) * VPY;
@@ -1621,6 +1623,81 @@ function renderMobile() {
 
   inner.appendChild(wrap);
   renderLegend();
+}
+
+/* ══════════════════════════════════════════════
+   PINCH TO ZOOM (mobile)
+══════════════════════════════════════════════ */
+let _pinchSetup = false;
+
+function setupPinchZoom() {
+  if (_pinchSetup || window.innerWidth > 768) return;
+  _pinchSetup = true;
+
+  const outer = document.getElementById('tlOuter');
+  const inner = document.getElementById('tlInner');
+
+  function pinchDist(t) {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  let startDist = 0, startVPY = mobileVPY;
+  let startScrollTop = 0, startMidClientY = 0;
+  let lastFactor = 1, inPinch = false;
+
+  outer.addEventListener('touchstart', e => {
+    if (e.touches.length !== 2) return;
+    inPinch = true;
+    lastFactor = 1;
+    startDist       = pinchDist(e.touches);
+    startVPY        = mobileVPY;
+    startScrollTop  = outer.scrollTop;
+    startMidClientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    e.preventDefault();
+  }, { passive: false });
+
+  outer.addEventListener('touchmove', e => {
+    if (!inPinch || e.touches.length < 2) return;
+    e.preventDefault();
+    lastFactor = Math.min(6, Math.max(0.2, pinchDist(e.touches) / startDist));
+    const wrap = inner.querySelector('.vtl-wrap');
+    if (!wrap) return;
+    // Zoom visivo attorno al punto di pinch
+    const outerRect = outer.getBoundingClientRect();
+    const originY   = startMidClientY - outerRect.top + startScrollTop;
+    wrap.style.transformOrigin = `center ${originY}px`;
+    wrap.style.transform       = `scaleY(${lastFactor})`;
+  }, { passive: false });
+
+  function endPinch() {
+    if (!inPinch) return;
+    inPinch = false;
+    const wrap = inner.querySelector('.vtl-wrap');
+    if (wrap) { wrap.style.transform = ''; wrap.style.transformOrigin = ''; }
+    if (Math.abs(lastFactor - 1) < 0.05) return; // nessuno zoom significativo
+
+    // Anno a metà del pinch prima dello zoom
+    const outerRect   = outer.getBoundingClientRect();
+    const containerY  = startMidClientY - outerRect.top + startScrollTop;
+    const yearAtPinch = CFG.start + containerY / startVPY;
+
+    // Aggiorna la scala e ridisegna
+    mobileVPY = Math.min(3, Math.max(0.18, startVPY * lastFactor));
+    renderMobile();
+
+    // Ripristina scroll per mantenere lo stesso anno visibile al centro
+    const newContainerY = (yearAtPinch - CFG.start) * mobileVPY;
+    outer.scrollTop = Math.max(0, newContainerY - (startMidClientY - outerRect.top));
+  }
+
+  outer.addEventListener('touchend',    endPinch, { passive: true });
+  outer.addEventListener('touchcancel', () => {
+    inPinch = false;
+    const wrap = inner.querySelector('.vtl-wrap');
+    if (wrap) { wrap.style.transform = ''; wrap.style.transformOrigin = ''; }
+  }, { passive: true });
 }
 
 function render() {
@@ -1793,6 +1870,7 @@ function init() {
   if (hint) hint.textContent = window.innerWidth <= 768 ? '↕ scorri verticalmente' : '← scorri orizzontalmente →';
   if (window.innerWidth <= 768) {
     renderMobile();
+    setupPinchZoom();
   } else {
     render();
     setupDrag();
