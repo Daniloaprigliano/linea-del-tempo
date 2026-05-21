@@ -1122,6 +1122,16 @@ function moveTooltip(e) {
 }
 function hideTooltip() { tt.style.display = 'none'; }
 
+function showEpochTooltip(e, ep) {
+  const duration = ep.end - ep.start;
+  tt.innerHTML =
+    `<div class="tt-year" style="color:${ep.color}">${fmtYear(ep.start)} – ${fmtYear(ep.end)}</div>` +
+    `<div class="tt-title">${ep.label}</div>` +
+    `<div class="tt-body">${duration} anni</div>`;
+  tt.style.display = 'block';
+  moveTooltip(e);
+}
+
 function showMarkerPanel(m) {
   // deseleziona eventuali periodi attivi
   if (active) { document.getElementById('p-' + active)?.classList.remove('active'); active = null; }
@@ -1204,6 +1214,9 @@ function buildEpochTrack() {
 
     blk.appendChild(name);
     blk.appendChild(bracket);
+    blk.addEventListener('mouseenter', e => showEpochTooltip(e, ep));
+    blk.addEventListener('mousemove',  e => moveTooltip(e));
+    blk.addEventListener('mouseleave', ()  => hideTooltip());
     track.appendChild(blk);
   });
   return track;
