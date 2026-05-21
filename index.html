@@ -115,6 +115,42 @@
       position: relative; height: 46px; margin-bottom: 7px;
     }
 
+    /* ── EPOCH GROUPING (staffe/graffe) ── */
+    .epoch-track { position: relative; height: 48px; margin-bottom: 3px; }
+
+    .epoch-blk {
+      position: absolute; top: 0; height: 100%;
+      overflow: visible;
+    }
+    .epoch-blk-name {
+      position: absolute; top: 4px;
+      left: 0; right: 0; text-align: center;
+      font-size: 10.5px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      padding: 0 10px;
+    }
+    /* La staffa: bordo sinistro + fondo + bordo destro, aperta in alto */
+    .epoch-blk-bracket {
+      position: absolute; bottom: 0;
+      left: 8px; right: 8px;
+      height: 24px;
+      border-left: 2.5px solid currentColor;
+      border-bottom: 2.5px solid currentColor;
+      border-right: 2.5px solid currentColor;
+      border-radius: 0 0 6px 6px;
+    }
+    /* piedini della staffa (angolini in alto) */
+    .epoch-blk-bracket::before,
+    .epoch-blk-bracket::after {
+      content: '';
+      position: absolute; top: 0;
+      width: 8px; height: 0;
+      border-top: 2.5px solid currentColor;
+    }
+    .epoch-blk-bracket::before { left: -2.5px; }
+    .epoch-blk-bracket::after  { right: -2.5px; }
+
     /* Epoch background bands (behind main track) */
     .epoch-band {
       position: absolute; top: 0; height: 100%;
@@ -531,6 +567,16 @@ const PERIODS = [
 ];
 
 /* ══════════════════════════════════════════════
+   DATA — EPOCHE (raggruppamenti superiori)
+══════════════════════════════════════════════ */
+const EPOCHS = [
+  { label: 'Storia Romana',     start: -753, end:  476, color: '#B03020' },
+  { label: 'Medioevo',          start:  476, end: 1453, color: '#1A5F8A' },
+  { label: 'Età Moderna',       start: 1492, end: 1815, color: '#1A7A3C' },
+  { label: 'Età Contemporanea', start: 1815, end: 2026, color: '#0E6655' },
+];
+
+/* ══════════════════════════════════════════════
    AXIS DATA
 ══════════════════════════════════════════════ */
 const KEY_DATES = [
@@ -592,6 +638,25 @@ function buildAxis() {
   return ax;
 }
 
+function buildEpochTrack() {
+  const track = mk('div', 'epoch-track');
+  EPOCHS.forEach(ep => {
+    const blk     = mk('div', 'epoch-blk');
+    blk.style.left  = x(ep.start) + 'px';
+    blk.style.width = w(ep.start, ep.end) + 'px';
+    blk.style.color = ep.color;
+
+    const name    = mk('div', 'epoch-blk-name', ep.label);
+    name.style.color = ep.color;
+    const bracket = mk('div', 'epoch-blk-bracket');
+
+    blk.appendChild(name);
+    blk.appendChild(bracket);
+    track.appendChild(blk);
+  });
+  return track;
+}
+
 function buildTrack(trackId) {
   const track = mk('div', 'track');
   PERIODS.filter(p => p.track === trackId).forEach(p => {
@@ -623,8 +688,9 @@ function render() {
 
   inner.appendChild(buildAxis());
 
-  // Group 1 — periodi principali
+  // Group 1 — epoche (staffe) + periodi principali
   inner.appendChild(mk('div', 'group-label', 'Periodi principali'));
+  inner.appendChild(buildEpochTrack());
   inner.appendChild(buildTrack('main'));
 
   // Separator
@@ -642,7 +708,7 @@ function render() {
   // rough height of content between axes
   const mid = mk('div');
   mid.style.cssText = 'position:absolute;top:38px;pointer-events:none;z-index:30;';
-  const approxH = 38 + 18 + CFG.trackH + 1 + 14 + 18 + (CFG.trackH + 7) * 3 + 38;
+  const approxH = 38 + 18 + 48 + 3 + CFG.trackH + 1 + 14 + 18 + (CFG.trackH + 7) * 3 + 38;
   const line = mk('div');
   line.style.cssText = `position:absolute;left:${x(2026)}px;top:0;width:2px;background:rgba(231,76,60,0.35);height:${approxH}px;`;
   inner.appendChild(line);
