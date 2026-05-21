@@ -1558,17 +1558,23 @@ function renderMobile() {
     wrap.appendChild(bar);
   });
 
-  /* ── PUNTINI EVENTO (fratelli delle barre, non figli — no bubbling) ── */
+  /* ── PUNTINI EVENTO (fratelli delle barre, area tap 44×44px) ── */
   const dotCX = AXIS_W + 2 + (MAIN_W - 2) / 2; // centro orizzontale della colonna main
+  const TA = 44; // touch area
   PERIODS.filter(p => p.track === 'main').forEach(p => {
     EVENTS.filter(ev => ev.p === p.id).forEach(ev => {
+      // Wrapper trasparente 44×44 — area toccabile
+      const hit = mk('div');
+      hit.style.cssText = `position:absolute; left:${dotCX - TA/2}px; top:${yv(ev.y) - TA/2}px; width:${TA}px; height:${TA}px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:8;`;
+      // Pallino visivo centrato dentro
       const dot = mk('div', 'ev-dot');
-      dot.style.cssText = `left:${dotCX}px; top:${yv(ev.y)}px; transform:translate(-50%,-50%); z-index:8;`;
-      addTap(dot, () => {
+      dot.style.cssText = `position:relative; width:12px; height:12px; flex-shrink:0; transform:none;`;
+      hit.appendChild(dot);
+      addTap(hit, () => {
         if (openDot === dot) { closeEvPopup(); return; }
         showEvPopup(dot, ev, p.color);
       });
-      wrap.appendChild(dot);
+      wrap.appendChild(hit);
     });
   });
 
